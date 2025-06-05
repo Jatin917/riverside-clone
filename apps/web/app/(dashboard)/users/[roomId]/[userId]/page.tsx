@@ -151,7 +151,7 @@ const Page = () => {
     };
 
     useEffect(() => {
-        const socket = new WebSocket('ws://10.129.11.227:8080');
+        const socket = new WebSocket('ws://localhost:8080');
         socketRef.current = socket;
 
         socket.onopen = () => {

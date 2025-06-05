@@ -7,12 +7,12 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 
 // A simple “ping” route
-app.get('/health', (_req, res) => {
+app.get('/health', (_req: any, res: { json: (arg0: { status: string; timestamp: string; }) => void; }) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // A sample API route
-app.get('/hello', (_req, res) => {
+app.get('/hello', (_req: any, res: { json: (arg0: { message: string; }) => void; }) => {
   res.json({ message: 'Hello from Express + TypeScript!' });
 });
 
