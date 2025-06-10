@@ -5,11 +5,11 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@prisma/client": "^6.8.2",
     "@types/express": "^5.0.2",
     "@types/ws": "^8.18.1",
     "ws": "^8.18.2"
