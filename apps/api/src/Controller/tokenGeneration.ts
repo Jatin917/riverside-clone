@@ -4,7 +4,6 @@ import { API_KEY, API_SECRET, LIVEKIT_URL } from '../server';
 
 export const tokenGeneration = async (req, res)=>{
     try {
-        console.log("yha aaya")
     const { roomName, participantName, metadata } = req.body;
     
     if (!roomName || !participantName) {
