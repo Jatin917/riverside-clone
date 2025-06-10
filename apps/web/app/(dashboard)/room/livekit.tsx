@@ -1,6 +1,15 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Room, RoomEvent, RemoteParticipant, RemoteTrack, LocalParticipant, ConnectionState, createLocalAudioTrack, createLocalVideoTrack } from 'livekit-client';
+import {
+  Room,
+  RoomEvent,
+  RemoteParticipant,
+  RemoteTrack,
+  ConnectionState,
+  createLocalAudioTrack,
+  createLocalVideoTrack,
+} from 'livekit-client';
+import { Track } from '../../components/tracks/track';
 
 interface LiveKitRoomProps {
   token: string;
@@ -11,28 +20,34 @@ interface LiveKitRoomProps {
   onLeave: () => void;
 }
 
-export default function LiveKitRoom({ token, wsUrl, roomName, participantName, isStreamer, onLeave }: LiveKitRoomProps) {
+export default function LiveKitRoom({
+  token,
+  wsUrl,
+  roomName,
+  participantName,
+  isStreamer,
+  onLeave,
+}: LiveKitRoomProps) {
   const [room, setRoom] = useState<Room | null>(null);
   const [participants, setParticipants] = useState<RemoteParticipant[]>([]);
   const [isConnected, setIsConnected] = useState(false);
-  const [connectionError, setConnectionError] = useState<string>('');
+  const [connectionError, setConnectionError] = useState('');
   const [isReadyToConnect, setIsReadyToConnect] = useState(false);
-  
+  const [participantsTrack, setParticipantsTrack] = useState<RemoteTrack[]>([]);
+
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
-  async function enableCameraAndMicrophone(room) {
+  async function enableCameraAndMicrophone(room: Room) {
     const videoTrack = await createLocalVideoTrack();
     const audioTrack = await createLocalAudioTrack();
 
     const videoPub = await room.localParticipant.publishTrack(videoTrack);
     const audioPub = await room.localParticipant.publishTrack(audioTrack);
 
-    return [videoPub, audioPub];
-}
+    return [videoPub.track, audioPub.track];
+  }
 
-
-  // Start audio context on user interaction
   const startAudioContext = async () => {
     try {
       if (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
@@ -48,7 +63,6 @@ export default function LiveKitRoom({ token, wsUrl, roomName, participantName, i
     }
   };
 
-  // Handle join room with user interaction
   const handleJoinRoom = async () => {
     try {
       await startAudioContext();
@@ -60,51 +74,28 @@ export default function LiveKitRoom({ token, wsUrl, roomName, participantName, i
     }
   };
 
-  // Handle streamer setup
   const handleStreamerSetup = async (newRoom: Room, isMounted: boolean) => {
     try {
-      console.log("🎥 Setting up streamer...");
-      
-      // First check if permissions are available
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true
-        });
-        console.log("✅ Got initial media stream");
-        
-        // Stop the test stream
-        stream.getTracks().forEach(track => track.stop());
-      } catch (permError) {
-        console.error("❌ Permission error:", permError);
-        throw permError;
-      }
-      
-      if (!isMounted) return;
-      
-      // Now enable in LiveKit
-      console.log("🔄 Enabling camera and microphone in LiveKit...");
-      const track = await enableCameraAndMicrophone(newRoom)
+      console.log('🎥 Setting up streamer...');
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      stream.getTracks().forEach((track) => track.stop());
 
-      console.log("✅ Tracks published:", track);
-      
       if (!isMounted) return;
-      
-      if (!track || track.length === 0) {
-        throw new Error("No tracks returned from enableCameraAndMicrophone");
-      }
-      
-      const videoTrack = track.find((t: any) => t.kind === 'video');
+
+      const tracks = await enableCameraAndMicrophone(newRoom);
+      console.log('✅ Tracks published:', tracks);
+
+      if (!isMounted || !tracks || tracks.length === 0) return;
+
+      const videoTrack = tracks.find((t: any) => t.kind === 'video');
       if (localVideoRef.current && videoTrack) {
-        console.log("✅ Attaching local video track ", videoTrack);
-        videoTrack.track.attach(localVideoRef.current);
+        console.log('✅ Attaching local video track ', videoTrack);
+        videoTrack.attach(localVideoRef.current);
       } else {
-        console.warn("⚠️ No video track or video ref not available");
+        console.warn('⚠️ No video track or video ref not available');
       }
-      
     } catch (error: any) {
-      console.error("❌ Error in streamer setup:", error);
-      
+      console.error('❌ Error in streamer setup:', error);
       let errorMessage = 'Failed to access camera/microphone';
       if (error.name === 'NotAllowedError') {
         errorMessage = 'Camera and microphone permissions denied. Please allow access and try again.';
@@ -113,7 +104,6 @@ export default function LiveKitRoom({ token, wsUrl, roomName, participantName, i
       } else if (error.name === 'NotReadableError') {
         errorMessage = 'Camera or microphone is already in use by another application.';
       }
-      
       setConnectionError(errorMessage);
       throw error;
     }
@@ -121,28 +111,20 @@ export default function LiveKitRoom({ token, wsUrl, roomName, participantName, i
 
   useEffect(() => {
     if (!isReadyToConnect) return;
-    
+
     let newRoom: Room | null = null;
     let isMounted = true;
-    
+
     const connectToRoom = async () => {
       try {
         console.log('🔄 Starting room connection...');
-        
-        // Validate inputs
-        if (!wsUrl || !token) {
-          throw new Error('Missing wsUrl or token');
-        }
+        if (!wsUrl || !token) throw new Error('Missing wsUrl or token');
 
-        newRoom = new Room({
-          adaptiveStream: true,
-          dynacast: true,
-        });
-        
+        newRoom = new Room({ adaptiveStream: true, dynacast: true });
         if (!isMounted) return;
+
         setRoom(newRoom);
 
-        // Connection event handlers
         newRoom.on(RoomEvent.Connected, () => {
           console.log('✅ Successfully connected to room');
           setIsConnected(true);
@@ -159,67 +141,48 @@ export default function LiveKitRoom({ token, wsUrl, roomName, participantName, i
           setIsConnected(state === ConnectionState.Connected);
         });
 
-        // Participant event handlers
         newRoom.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
           console.log('👤 Participant connected:', participant.identity);
-          setParticipants(prev => [...prev, participant]);
+          setParticipants((prev) => [...prev, participant]);
         });
 
         newRoom.on(RoomEvent.ParticipantDisconnected, (participant: RemoteParticipant) => {
           console.log('👤 Participant disconnected:', participant.identity);
-          setParticipants(prev => prev.filter(p => p.identity !== participant.identity));
+          setParticipants((prev) => prev.filter((p) => p.identity !== participant.identity));
         });
 
-        // Track event handlers
-        newRoom.on(RoomEvent.TrackSubscribed, (track: any, publication: any, participant: any) => {
-          console.log('📹 Track subscribed:', track.kind, 'from:', participant.identity);
-          if (track.kind === 'video' && remoteVideoRef.current) {
-            console.log("remote track ", track)
-            track.attach(remoteVideoRef.current);
+        newRoom.on(RoomEvent.TrackSubscribed, (track: any) => {
+          console.log('📹 Track subscribed:', track.kind);
+          if (track.kind === 'video') {
+            setParticipantsTrack((prev) => {
+              const exists = prev.find((t) => t.sid === track.sid);
+              return exists ? prev : [...prev, track];
+            });
           }
         });
 
-        newRoom.on(RoomEvent.TrackUnsubscribed, (track: any, publication: any, participant: any) => {
-          console.log('📹 Track unsubscribed:', track.kind, 'from:', participant.identity);
-          if (track.kind === 'video' && remoteVideoRef.current) {
-            console.log("attaching remote videoTrack", track)
-            track.detach(remoteVideoRef.current);
+        newRoom.on(RoomEvent.TrackUnsubscribed, (track: any) => {
+          console.log('📹 Track unsubscribed:', track.kind);
+          if (track.kind === 'video') {
+            setParticipantsTrack((prev) => prev.filter((t) => t.sid !== track.sid));
           }
         });
-        
-        // Connect to room
-        console.log('🔌 Connecting to room...');
+
         await newRoom.connect(wsUrl, token);
-        
         if (!isMounted) {
           newRoom.disconnect();
           return;
         }
 
-        // Set existing participants
-        console.log("participants are ", newRoom);
         const existingParticipants = Array.from(newRoom.remoteParticipants.values());
         setParticipants(existingParticipants);
-        console.log('👥 Existing participants:', existingParticipants.length);
 
-        // Handle streamer setup after successful connection
         if (isStreamer) {
           await handleStreamerSetup(newRoom, isMounted);
         }
-        
       } catch (error: any) {
         console.error('❌ Error connecting to room:', error);
-        
-        let errorMessage = 'Failed to connect to room';
-        if (error.message?.includes('token')) {
-          errorMessage = 'Invalid token. Please refresh and try again.';
-        } else if (error.message?.includes('WebSocket')) {
-          errorMessage = 'Connection failed. Please check your internet connection.';
-        } else if (error.message) {
-          errorMessage = error.message;
-        }
-        
-        setConnectionError(errorMessage);
+        setConnectionError(error.message || 'Failed to connect to room');
         setIsConnected(false);
       }
     };
@@ -227,7 +190,6 @@ export default function LiveKitRoom({ token, wsUrl, roomName, participantName, i
     connectToRoom();
 
     return () => {
-      console.log('🧹 Cleaning up room connection...');
       isMounted = false;
       if (newRoom) {
         newRoom.removeAllListeners();
@@ -236,7 +198,6 @@ export default function LiveKitRoom({ token, wsUrl, roomName, participantName, i
     };
   }, [token, wsUrl, isStreamer, isReadyToConnect]);
 
-  // Handle leaving the room
   const handleLeave = () => {
     if (room) {
       room.disconnect();
@@ -248,15 +209,11 @@ export default function LiveKitRoom({ token, wsUrl, roomName, participantName, i
     <div className="p-4">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-white text-xl">Room: {roomName}</h1>
-        <button
-          onClick={handleLeave}
-          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-        >
+        <button onClick={handleLeave} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
           Leave Room
         </button>
       </div>
 
-      {/* Connection Status */}
       <div className="mb-4">
         {!isReadyToConnect ? (
           <div className="text-center">
@@ -280,7 +237,6 @@ export default function LiveKitRoom({ token, wsUrl, roomName, participantName, i
         )}
       </div>
 
-      {/* Error Display */}
       {connectionError && (
         <div className="bg-red-500/20 border border-red-500 text-red-200 p-3 rounded-lg mb-4">
           <p className="font-medium">Connection Error:</p>
@@ -297,10 +253,8 @@ export default function LiveKitRoom({ token, wsUrl, roomName, participantName, i
         </div>
       )}
 
-      {/* Video Grid */}
       {isReadyToConnect && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Local Video */}
           {isStreamer && (
             <div className="relative">
               <h2 className="text-white mb-2">Your Video</h2>
@@ -314,20 +268,14 @@ export default function LiveKitRoom({ token, wsUrl, roomName, participantName, i
             </div>
           )}
 
-          {/* Remote Video */}
           <div className="relative">
-            <h2 className="text-white mb-2">Remote Video</h2>
-            <video
-              ref={remoteVideoRef}
-              autoPlay
-              playsInline
-              className="w-full aspect-video bg-black rounded-lg"
-            />
+            {participantsTrack.map((track) => (
+              <Track track={track} key={track.sid || track.kind} />
+            ))}
           </div>
         </div>
       )}
 
-      {/* Participants List */}
       {isReadyToConnect && (
         <div className="mt-4">
           <h2 className="text-white mb-2">Participants ({participants.length + 1}):</h2>
