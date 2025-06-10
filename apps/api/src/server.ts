@@ -6,6 +6,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
 import { socketHandler } from './wss-server';
+import { router } from './Routes/route';
 
 
 dotenv.config();
@@ -27,7 +28,7 @@ app.use(express.urlencoded({ extended: true }));
 export const API_KEY = process.env.LIVEKIT_API_KEY
 export const API_SECRET = process.env.LIVEKIT_API_SECRET
 export const LIVEKIT_URL = process.env.LIVEKIT_URL;
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3001;
 
 app.use('/api', router);
 socketHandler(io);

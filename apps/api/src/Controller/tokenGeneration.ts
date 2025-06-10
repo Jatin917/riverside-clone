@@ -2,8 +2,9 @@ import { AccessToken } from 'livekit-server-sdk';
 import { API_KEY, API_SECRET, LIVEKIT_URL } from '../server';
 
 
-const tokenGeneration = async (req, res)=>{
+export const tokenGeneration = async (req, res)=>{
     try {
+        console.log("yha aaya")
     const { roomName, participantName, metadata } = req.body;
     
     if (!roomName || !participantName) {

@@ -1,5 +1,6 @@
 import { Router } from "express";
+import { tokenGeneration } from "../Controller/tokenGeneration";
 
-const route = Router();
+export const router = Router();
 
-route.post('/token', tokenGeneration);
+router.post('/token', tokenGeneration);
