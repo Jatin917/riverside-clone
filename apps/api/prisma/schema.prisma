@@ -17,7 +17,44 @@ datasource db {
 }
 
 model User {
-  id         String   @id @default(uuid())
-  name       String
-  email      String   @unique
+  id        String    @id @default(uuid())
+  name      String
+  email     String    @unique
+  studios   Studio[]
+  sessions  Session[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Studio {
+  id        String    @id @default(uuid())
+  name      String
+  slug      String    @unique
+  owner     User      @relation(fields: [ownerId], references: [id])
+  ownerId   String
+  sessions  Session[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Session {
+  id            String    @id @default(uuid())
+  studio        Studio    @relation(fields: [studioId], references: [id])
+  studioId      String
+  host          User      @relation(fields: [hostId], references: [id])
+  hostId        String
+  participants  Int
+  startedAt     DateTime
+  endedAt       DateTime
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model ParticipantSession {
+  id             String @id @default(uuid())
+  sessionId      String
+  userId         String
+  name           String
+  joinedAt       DateTime @default(now())
+  leftAt         DateTime 
 }
