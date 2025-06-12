@@ -76,9 +76,6 @@ export default function LiveKitRoom({
 
   const handleStreamerSetup = async (newRoom: Room, isMounted: boolean) => {
     try {
-      console.log('🎥 Setting up streamer...');
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      stream.getTracks().forEach((track) => track.stop());
 
       if (!isMounted) return;
 

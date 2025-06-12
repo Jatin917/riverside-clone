@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Camera, Mic, MicOff, VideoOff, ChevronDown, Settings } from 'lucide-react';
+import { createLocalAudioTrack, createLocalVideoTrack } from 'livekit-client';
 
 interface MediaDevice {
   deviceId: string;
@@ -33,6 +34,7 @@ const CameraSetup: React.FC<CameraSetupProps> = ({
   const [isUsingHeadphones, setIsUsingHeadphones] = useState<boolean>(false);
   const [isCameraOn, setIsCameraOn] = useState<boolean>(true);
   const [isMicOn, setIsMicOn] = useState<boolean>(true);
+  const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
   
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -58,20 +60,24 @@ const CameraSetup: React.FC<CameraSetupProps> = ({
     }
   };
 
+useEffect(()=>{
+        if (videoRef.current && previewStream) {
+        console.log("privies stream")
+        videoRef.current.srcObject = previewStream;
+      }
+},[hasPermission, previewStream])
+
   const requestPermission = async (): Promise<void> => {
     setIsLoading(true);
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true
-      });
-      
-      setStream(mediaStream);
+      const videoTrack = await createLocalVideoTrack();
+      const audioTrack = await createLocalAudioTrack(); 
+      const stream = new MediaStream([
+        videoTrack.mediaStreamTrack,
+        audioTrack.mediaStreamTrack,
+      ]);
       setHasPermission(true);
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
+      setPreviewStream(stream);
       
       const availableDevices = await getMediaDevices();
       setDevices(availableDevices);
