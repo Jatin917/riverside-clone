@@ -11,20 +11,26 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@repo/db":"*",
+    "@repo/db": "*",
     "@repo/ui": "*",
+    "@tailwindcss/postcss": "^4.1.10",
     "livekit-client": "^2.13.4",
-    "next": "^15.3.0",
+    "lucide-react": "^0.514.0",
+    "next": "^15.3.3",
+    "postcss": "^8.5.5",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "tailwindcss": "^4.1.10",
+    "turbo": "^2.5.4"
   },
   "devDependencies": {
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
-    "@types/node": "^22.15.3",
-    "@types/react": "19.1.0",
-    "@types/react-dom": "19.1.1",
+    "@types/dom-mediacapture-record": "^1.0.0",
+    "@types/node": "^24.0.1",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
     "eslint": "^9.27.0",
-    "typescript": "5.8.2"
+    "typescript": "^5.8.3"
   }
 }
