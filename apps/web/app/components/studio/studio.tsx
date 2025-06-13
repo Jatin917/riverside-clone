@@ -128,8 +128,8 @@ useEffect(()=>{
   };
 
   const toggleCamera = (): void => {
-    if (stream) {
-      const videoTrack = stream.getVideoTracks()[0];
+    if (previewStream) {
+      const videoTrack = previewStream.getVideoTracks()[0];
       if (videoTrack) {
         videoTrack.enabled = !videoTrack.enabled;
         setIsCameraOn(videoTrack.enabled);
@@ -138,8 +138,8 @@ useEffect(()=>{
   };
 
   const toggleMicrophone = (): void => {
-    if (stream) {
-      const audioTrack = stream.getAudioTracks()[0];
+    if (previewStream) {
+      const audioTrack = previewStream.getAudioTracks()[0];
       if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
         setIsMicOn(audioTrack.enabled);

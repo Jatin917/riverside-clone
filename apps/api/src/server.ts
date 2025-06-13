@@ -29,6 +29,7 @@ export const API_KEY = process.env.LIVEKIT_API_KEY
 export const API_SECRET = process.env.LIVEKIT_API_SECRET
 export const LIVEKIT_URL = process.env.LIVEKIT_URL;
 const PORT = process.env.PORT || 3001;
+export const sessionMap = new Map();
 
 app.use('/api', router);
 socketHandler(io);
