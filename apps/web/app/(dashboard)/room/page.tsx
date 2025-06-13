@@ -24,34 +24,7 @@ function RoomContent() {
     }
   }, [room, participant, streamer]);
 
-  const fetchToken = async () => {
-    try {
-      const response = await fetch('http://localhost:3001/api/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          roomName: room,
-          participantName: participant,
-          isStreamer: streamer === 'true',
-        }),
-      });
 
-      if (!response.ok) {
-        throw new Error('Failed to get access token');
-      }
-
-      const data = await response.json();
-      console.log("data from token", data);
-      setToken(data.token);
-      setWsUrl(data.wsUrl);
-      setLoading(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      setLoading(false);
-    }
-  };
 
   const handleLeave = () => {
     router.push('/');

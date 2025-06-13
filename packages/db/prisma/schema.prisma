@@ -20,11 +20,10 @@ model User {
   id        String    @id @default(uuid())
   name      String
   email     String    @unique
-  studios   Studio[]
-  sessions  Session[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   ParticipantSession ParticipantSession[]
+  Studio    Studio?
 }
 
 model Studio {
@@ -32,21 +31,19 @@ model Studio {
   name      String
   slugId    String    @unique
   owner     User      @relation(fields: [ownerId], references: [id])
-  ownerId   String
-  sessions  Session[]
+  ownerId   String    @unique
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  sessions  Session[]
 }
+
 
 model Session {
   id            String    @id @default(uuid())
   studio        Studio    @relation(fields: [studioId], references: [id])
   studioId      String
-  host          User      @relation(fields: [hostId], references: [id])
-  hostId        String
-  participants  Int
   startedAt     DateTime
-  endedAt       DateTime
+  endedAt       DateTime   //abhi to default rkh dete hain then ended up time rkh denve
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

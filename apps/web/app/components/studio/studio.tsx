@@ -19,7 +19,9 @@ interface CameraSetupProps {
 const CameraSetup: React.FC<CameraSetupProps> = ({
   onJoinStudio,
   hostName = "Jatin Chandel",
-  studioName = "Jatin Chandel's Studio"
+  studioName = "Jatin Chandel's Studio",
+  previewStream, 
+  setPreviewStream
 }) => {
   const [hasPermission, setHasPermission] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -34,7 +36,6 @@ const CameraSetup: React.FC<CameraSetupProps> = ({
   const [isUsingHeadphones, setIsUsingHeadphones] = useState<boolean>(false);
   const [isCameraOn, setIsCameraOn] = useState<boolean>(true);
   const [isMicOn, setIsMicOn] = useState<boolean>(true);
-  const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
   
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -60,12 +61,11 @@ const CameraSetup: React.FC<CameraSetupProps> = ({
     }
   };
 
-useEffect(()=>{
-        if (videoRef.current && previewStream) {
-        console.log("privies stream")
-        videoRef.current.srcObject = previewStream;
-      }
-},[hasPermission, previewStream])
+  useEffect(()=>{
+    if (videoRef.current && previewStream) {
+      videoRef.current.srcObject = previewStream;
+    }
+  },[hasPermission, previewStream])
 
   const requestPermission = async (): Promise<void> => {
     setIsLoading(true);

@@ -4,23 +4,23 @@ import { API_KEY, API_SECRET, LIVEKIT_URL } from '../server';
 
 export const tokenGeneration = async (req, res)=>{
     try {
-    const { roomName, participantName, metadata } = req.body;
+    const { token:roomToken, metadata, email } = req.body;
     
-    if (!roomName || !participantName) {
+    if (!roomToken ||  !email) {
       return res.status(400).json({ 
-        error: 'roomName and participantName are required' 
+        error: 'roomToken and email are required' 
       });
     }
 
     // Create access token
     const at = new AccessToken(API_KEY, API_SECRET, {
-      identity: participantName,
+      identity: email,
       metadata: metadata || JSON.stringify({ userId: Date.now() })
     });
 
     // Grant permissions
     at.addGrant({
-      room: roomName,
+      room: roomToken,
       roomJoin: true,
       canPublish: true,
       canSubscribe: true,
@@ -33,8 +33,6 @@ export const tokenGeneration = async (req, res)=>{
     res.json({
       token,
       wsUrl: LIVEKIT_URL,
-      roomName,
-      participantName
     });
 
   } catch (error) {
