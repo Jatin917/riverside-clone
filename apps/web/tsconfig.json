@@ -8,7 +8,8 @@
     ],
     "baseUrl": ".",
      "paths": {
-       "@component/*": ["./app/components/*"]
+       "@component/*": ["./app/components/*"],
+       "@lib/*":["./app/libs/*"]
      },
   },
   "include": [

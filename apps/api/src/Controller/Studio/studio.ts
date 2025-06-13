@@ -5,26 +5,21 @@ import { HTTP_STATUS } from "../../lib/types";
 export const getStudio = async (req: Request, res: Response) => {
   try {
     if(!req.body) return;
-    const userId: string = req.body.userId || "";
+    const email: string = req.body.email || "";
 
-    if (!userId) {
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: 'Missing userId' });
+    if (!email) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: 'Missing email' });
     }
-
+    const user = await prisma.user.findFirst({email:email});
+    if(!user){
+      return res.status(HTTP_STATUS.NOT_FOUND).json({message:"No user found"});
+    }
+    const userId = user.id;
     let studio = await prisma.studio.findFirst({
       where: { ownerId: userId },
     });
 
     if (!studio) {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { name: true },
-      });
-
-      if (!user || !user.name) {
-        return res.status(HTTP_STATUS.NOT_FOUND).json({ message: 'User not found' });
-      }
-
       const parsedName = user.name.trim().toLowerCase().replace(/\s+/g, '-');
       const slugId = `${parsedName}-${nanoid(6)}`;
 
