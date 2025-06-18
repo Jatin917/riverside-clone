@@ -1,0 +1,8 @@
+node_modules
+.next
+dist
+*.log
+Dockerfiles/
+.env*
+.git
+.turbo

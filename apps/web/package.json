@@ -26,7 +26,6 @@
     "turbo": "^2.5.4"
   },
   "devDependencies": {
-    "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
     "@types/dom-mediacapture-record": "^1.0.0",
     "@types/node": "^24.0.1",
