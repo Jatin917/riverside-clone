@@ -18,7 +18,7 @@ interface Participant {
   quality: string
 }
 // Main Studio Component
-const StudioSession = ({previewStream, wsUrl, livekitToken, link}:{previewStream:MediaStream, wsUrl:string, livekitToken:string, link:URL}) => {
+const StudioSession = ({previewStream, wsUrl, livekitToken, link, host}:{previewStream:MediaStream | null, wsUrl:string, livekitToken:string, link:string | null, host:boolean}) => {
   const [room, setRoom] = useState<Room | null>(null);
   const [isReadyToConnect, setIsReadyToConnect] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
@@ -26,18 +26,26 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link}:{previewStream
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const [participants, setParticipants] = useState<RemoteParticipant[]>([]);
   const [participantsTrack, setParticipantsTrack] = useState<RemoteTrack[]>([]);
-
+  const [isOpen, setIsOpen] = useState(true);
+    const handleLeave = () => {
+      console.log("handleLeave");
+      setIsOpen(false);
+    }
 
     const handleStreamerSetup = async (newRoom: Room, isMounted: boolean) => {
     try {
-
-      if (!isMounted) return;
+      console.log("handleStreamerSetup is ", isMounted);
+      if (!isMounted || !previewStream) return;
       const videoTrack = previewStream.getVideoTracks()[0];
       const audioTrack = previewStream.getAudioTracks()[0];
-      if (!isMounted || !videoTrack || !audioTrack) return;
-      if(room){
-        await room.localParticipant.publishTrack(audioTrack);
-        await room.localParticipant.publishTrack(videoTrack);
+      console.log("videoTrack is ", videoTrack);
+      if (!videoTrack) return;
+      console.log("room is 1", newRoom);
+      if(newRoom){
+        // await room.localParticipant.publishTrack(audioTrack);
+        console.log("room is ", newRoom);
+        console.log("publishing track ", videoTrack);
+        await newRoom.localParticipant.publishTrack(videoTrack);
       }
 
     } catch (error: any) {
@@ -55,14 +63,14 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link}:{previewStream
     }
   };
     useEffect(() => {
-      if (!isReadyToConnect) return;
+      // if (!isReadyToConnect) return;
   
       let newRoom: Room | null = null;
       let isMounted = true;
   
       const connectToRoom = async () => {
         try {
-          console.log('🔄 Starting room connection...');
+          console.log('🔄 Starting room connection...', wsUrl, livekitToken);
           if (!wsUrl || !livekitToken) throw new Error('Missing wsUrl or livekitToken');
   
           newRoom = new Room({ adaptiveStream: true, dynacast: true });
@@ -139,7 +147,7 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link}:{previewStream
           newRoom.disconnect();
         }
       };
-    }, [livekitToken, wsUrl, isReadyToConnect]);
+    }, [livekitToken, wsUrl, isReadyToConnect, previewStream]);
   
   return (
     <div className="h-screen bg-gray-900 flex flex-col">
@@ -150,7 +158,7 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link}:{previewStream
         <div className="flex-1 p-6">
           <div className="h-full flex items-center justify-center">
             <div className="w-full max-w-4xl">
-              <VideoFeed previewStream={previewStream} />
+              <VideoFeed participantsTrack={participantsTrack} previewStream={previewStream} />
             </div>
           </div>
         </div>
@@ -168,11 +176,11 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link}:{previewStream
         onLeave={() => console.log('Leave')}
       />
       
-    <InvitePanel 
-        link={link}
-        isOpen={false} 
-        onClose={() => void(false)} 
-      />
+    {host && isOpen && <InvitePanel 
+        studioLink={link}
+        hostName={"Jatin Chandel"}
+        onClose={handleLeave} 
+      />}
     </div>
   )
 }

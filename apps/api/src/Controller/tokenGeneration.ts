@@ -7,6 +7,7 @@ export const tokenGeneration = async (req, res)=>{
     const { token:roomToken, metadata, email } = req.body;
     
     if (!roomToken ||  !email) {
+      console.log("roomToken and email are required ", roomToken, email);
       return res.status(400).json({ 
         error: 'roomToken and email are required' 
       });

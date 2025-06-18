@@ -52,7 +52,7 @@ export const createSession = async (req, res) => {
 export const createToken = async (req, res) =>{
     try {
     const {slugId, sessionId} = req.body;
-    const token = crypto.randomBytes(6).toString('base64url');
+    const token = crypto.randomBytes(10).toString('base64url');
     sessionMap.set(token, {slugId, sessionId});
     return res.status(HTTP_STATUS.OK).json({token});
     } catch (error) {
@@ -69,6 +69,7 @@ export const getSessionToken = async (req, res) =>{
             throw Error("No data Found for this token");
             // return res.status(HTTP_STATUS.BAD_REQUEST).json({message:e});
         }
+        return res.status(HTTP_STATUS.OK).json({data});
     } catch (error) {
         console.log((error as Error).message);
         return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR);

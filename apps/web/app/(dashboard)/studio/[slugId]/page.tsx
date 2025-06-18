@@ -1,47 +1,65 @@
 'use client';
-import CameraSetup from '@component/studio/studio';
+
 import { useEffect, useState } from 'react';
-import axios from 'axios';
-import { useParams, useRouter } from 'next/navigation';
-import StudioSession from '@component/studio/studioSession';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import axios from 'axios';
+
+import CameraSetup from '@component/studio/studio';
+import StudioSession from '@component/studio/studioSession';
 
 export default function StudioPage() {
-  const params = useParams();
   const router = useRouter();
-  const slugId = Array.isArray(params.slugId) ? params.slugId[0] : params.slugId;
+  const params = useParams();
+  const searchParams = useSearchParams();
   const session = useSession();
-  const [email, setEmail] = useState<string | null>();
-  useEffect(()=>{
-    console.log("session is ", session);
-    if(session && session.data && session.data.user){
-      setEmail(session.data.user.email);
-      // // user is not authenticated ask him to authenticate
-      // router.push('/login');
-      return;
-    }
-  },[router, session])
+
+  const slugId = Array.isArray(params.slugId) ? params.slugId[0] : params.slugId;
+
+  const [email, setEmail] = useState<string | null>(null);
   const [link, setLink] = useState<string | null>(null);
   const [joinedStudio, setJoinedStudio] = useState<boolean>(false);
-  const [livekitToken, setLivekitToken] = useState<string>('')
-  const [roomToken, setRoomToken] = useState<string>('')
+  const [livekitToken, setLivekitToken] = useState<string>('');
   const [wsUrl, setWsUrl] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [host, setHost] = useState<boolean>(true);
   const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
-  
+  const [sessionToken, setSessionToken] = useState<string>(''); // room token
 
-  const fetchToken = async (token:string) => {
+  // ✅ Set email when session is loaded
+  useEffect(() => {
+    if (session.status === 'unauthenticated') {
+      router.push('/');
+      return;
+    }
+
+    if (session.data?.user?.email) {
+      setEmail(session.data.user.email);
+    }
+  }, [session, router]);
+
+  // ✅ Once email is ready, look for token in URL and fetch LiveKit token
+  useEffect(() => {
+    const tokenFromUrl = searchParams.get('t');
+    if (tokenFromUrl && email && !joinedStudio) {
+      setSessionToken(tokenFromUrl);
+      setJoinedStudio(true);
+      setHost(false);
+      fetchToken(tokenFromUrl);
+    }
+  }, [searchParams, email, joinedStudio]);
+
+  // ✅ Fetch LiveKit token from your backend
+  const fetchToken = async (token: string) => {
     try {
-      const response = await fetch('http://localhost:3001/api/livekit-token', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/livekit-token`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
           token,
-          isStreamer:'true',
+          isStreamer: 'true',
         }),
       });
 
@@ -50,47 +68,47 @@ export default function StudioPage() {
       }
 
       const data = await response.json();
-      console.log("data from token", data);
       setLivekitToken(data.token);
       setWsUrl(data.wsUrl);
       setLoading(false);
-      setJoinedStudio(true); // set studio as joined after link generated
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
       setLoading(false);
     }
   };
 
+  // ✅ Called when host joins
   const handleJoinStudio = async () => {
     try {
-      if (!slugId) throw new Error("Slug ID is missing");
+      if (!slugId || !email) throw new Error('Missing data');
 
       const sessionRes = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/session`, {
         slugId,
       });
+
       const session = sessionRes.data.session;
-      console.log("session is ", session, session.id)
-      if (!session || !session.id) {
-        throw new Error("Session creation failed");
-      }
+      if (!session?.id) throw new Error('Session creation failed');
 
       const tokenRes = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/session-token`, {
         slugId,
         sessionId: session.id,
       });
 
-      const token = tokenRes.data;
-      const currentUrl = window.location.origin + `/studio/${slugId}`;
-      const url = new URL(currentUrl);
-      url.searchParams.set('t', token);
-      setRoomToken(token);
-      setLink(url.toString());
+      const token = tokenRes.data.token;
+
+      const studioUrl = new URL(`${window.location.origin}/studio/${slugId}`);
+      studioUrl.searchParams.set('t', token);
+
+      setSessionToken(token);
+      setLink(studioUrl.toString());
+      setJoinedStudio(true);
       await fetchToken(token);
     } catch (error) {
       console.error('Join Studio Failed:', error);
     }
   };
 
+  // ✅ Render logic
   return (
     <>
       {!joinedStudio ? (
@@ -102,7 +120,13 @@ export default function StudioPage() {
           studioName="Jatin Chandel's Studio"
         />
       ) : (
-        <StudioSession previewStream={previewStream} wsUrl={wsUrl}  livekitToken={livekitToken} link={link} />
+        <StudioSession
+          previewStream={previewStream}
+          wsUrl={wsUrl}
+          livekitToken={livekitToken}
+          link={link}
+          host={host}
+        />
       )}
     </>
   );

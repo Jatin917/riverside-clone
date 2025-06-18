@@ -1,69 +1,73 @@
-"use client";
-// Video Feed Component
-import { MicOff } from "lucide-react";
-import { useEffect, useRef } from "react";
 
-// Types
-interface Participant {
+
+import SingleVideoFeed from "./SingleFeed";
+
+interface ParticipantTrack {
   id: string;
   name: string;
   isHost: boolean;
   videoEnabled: boolean;
   audioEnabled: boolean;
   quality: string;
+  stream: MediaStream | null;
+  isSpeaking?: boolean;
 }
+// VideoFeed Component
+const VideoFeed = ({ 
+  previewStream, 
+  participantsTrack = [],
+  currentUserId,
+  hostName
+}: { 
+  previewStream?: MediaStream;
+  participantsTrack?: ParticipantTrack[];
+  currentUserId?: string;
+  hostName?: string;
+}) => {
+  // Create host participant from preview stream
+  const hostParticipant: ParticipantTrack = {
+    id: currentUserId || 'host',
+    name: hostName || 'Host',
+    isHost: true,
+    videoEnabled: !!previewStream,
+    audioEnabled: true,
+    quality: 'HD',
+    stream: previewStream
+  };
 
-const VideoFeed = ({ previewStream }: { previewStream: MediaStream }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  console.log("participantsTrack are ", participantsTrack);
+  const allParticipants = [hostParticipant, ...participantsTrack];
 
-  useEffect(() => {
-    // Simulate video stream
-    if (videoRef.current && previewStream && videoRef.current) {
-      videoRef.current.srcObject = previewStream;
-      console.log("✅ Attaching local video track ", previewStream);
-    } else {
-      console.warn("⚠️ No video track or video ref not available");
-    }
-  }, [previewStream]);
+  // Grid layout logic
+  const getGridCols = (count: number) => {
+    if (count === 1) return 'grid-cols-1';
+    if (count === 2) return 'grid-cols-1 lg:grid-cols-2';
+    if (count <= 4) return 'grid-cols-2';
+    if (count <= 6) return 'grid-cols-2 lg:grid-cols-3';
+    return 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+  };
 
   return (
-    <div
-      className={`relative bg-gray-800 rounded-xl overflow-hidden ${"aspect-square"}`}
-    >
-      (
-        <video
-          ref={videoRef}
-          autoPlay
-          muted
-          playsInline
-          className="w-full h-full object-cover"
+    <div className="flex-1 p-6">
+      <div className={`grid gap-6 h-full ${getGridCols(allParticipants.length)}`}>
+        {/* Host Video */}
+        <SingleVideoFeed 
+          participant={hostParticipant}
+          stream={previewStream}
+          isPreview={true}
         />
-      )
-
-      {/* Participant Info
-      <div className="absolute bottom-3 left-3 flex items-center space-x-2">
-        <span className="bg-black bg-opacity-60 text-white px-2 py-1 rounded text-sm">
-          {participant.name}
-        </span>
-        {participant.isHost && (
-          <span className="bg-purple-600 text-white px-2 py-1 rounded text-xs">
-            Host
-          </span>
-        )}
-        <span className="bg-black bg-opacity-60 text-white px-2 py-1 rounded text-xs">
-          {participant.quality}
-        </span>
+        
+        {/* Participants Videos */}
+        {participantsTrack.map((participant) => (
+          <SingleVideoFeed 
+            key={participant.id}
+            participant={participant} 
+            stream={(new MediaStream([participant.mediaStreamTrack]))}
+          />
+        ))}
       </div>
-
-      {/* Audio Indicator */}
-      {/* <div className="absolute top-3 right-3">
-        {participant.audioEnabled ? (
-          <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-        ) : (
-          <MicOff className="w-4 h-4 text-red-500" />
-        )}
-      </div>  */}
     </div>
   );
 };
+
 export default VideoFeed;

@@ -1,61 +1,83 @@
 "use client"
-import { Copy, Mail } from "lucide-react";
+import { Copy, Mail, X } from "lucide-react";
 import { useState } from "react";
 // Invite Panel Component
-const InvitePanel = ({ link, isOpen, onClose }: { isOpen: boolean; onClose: () => void, link:URL }) => {
-  const [inviteLink] = useState<URL>(link)
-  
-  const copyLink = () => {
-    navigator.clipboard.writeText(String(inviteLink))
-  }
-
-  if (!isOpen) return null
+const InvitePanel = ({ 
+  onClose, 
+  studioLink,
+  hostName = "Jatin Chandel",
+  isRecording = false
+}: {
+  onClose: () => void;
+  studioLink: string | null;
+  hostName?: string;
+  isRecording?: boolean;
+}) => {
+  const [linkCopied, setLinkCopied] = useState(false);
+  if(!studioLink) return;
+  const handleCopyLink = () => {
+    if(!studioLink) return;
+    navigator.clipboard.writeText(studioLink);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-xl p-6 w-96 max-w-md mx-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-white text-lg font-semibold">Invite people</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
-            ×
+      <div className="bg-gray-800 rounded-xl p-8 max-w-md w-full mx-4 relative">
+        {/* Close button */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+          >
+            <X className="w-5 h-5" />
           </button>
+        )}
+
+        {/* Title */}
+        <div className="text-center mb-6">
+          <h2 className="text-white text-2xl font-semibold mb-2">Invite people</h2>
+          <p className="text-gray-400 text-sm">Share this link to invite people to your studio.</p>
         </div>
-        
-        <p className="text-gray-400 text-sm mb-4">
-          Share this link to invite people to your studio.
-        </p>
-        
-        <div className="space-y-4">
-          <div className="flex items-center space-x-2">
+
+        {/* Invite Link Section */}
+        <div className="mb-6">
+          <div className="flex items-center bg-gray-700 rounded-lg p-3 mb-3">
             <input
               type="text"
-              value={String(inviteLink)}
+              value={studioLink}
               readOnly
-              className="flex-1 bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600"
+              className="flex-1 bg-transparent text-white text-sm outline-none"
             />
-            <select className="bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600">
+            <select className="bg-gray-600 text-white text-sm rounded px-2 py-1 ml-2 outline-none">
               <option>Guest</option>
-              <option>Producer</option>
+              <option>Host</option>
             </select>
-            <button
-              onClick={copyLink}
-              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
-            >
-              <Copy className="w-4 h-4" />
-              <span>Copy link</span>
-            </button>
           </div>
           
-          <div className="text-center text-gray-400">or</div>
-          
-          <button className="w-full bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center justify-center space-x-2">
-            <Mail className="w-4 h-4" />
-            <span>Invite by email</span>
+          <button
+            onClick={handleCopyLink}
+            className={`w-full py-3 rounded-lg font-medium transition-all ${
+              linkCopied 
+                ? 'bg-green-600 text-white' 
+                : 'bg-purple-600 hover:bg-purple-700 text-white'
+            }`}
+          >
+            {linkCopied ? 'Link Copied!' : 'Copy link'}
           </button>
         </div>
+
+        {/* Divider */}
+        <div className="text-center text-gray-500 text-sm mb-6">or</div>
+
+        {/* Email Invite */}
+        <button className="w-full py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors">
+          Invite by email
+        </button>
       </div>
     </div>
-  )
-}
+  );
+};
 
 export default InvitePanel
