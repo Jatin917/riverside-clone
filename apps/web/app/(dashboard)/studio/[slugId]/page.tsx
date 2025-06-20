@@ -8,6 +8,7 @@ import axios from 'axios';
 import CameraSetup from '@component/studio/studio';
 import StudioSession from '@component/studio/studioSession';
 import { createSessionAndToken, fetchLivekitToken, fetchOngoingSession } from '@lib/studio';
+import { createLocalAudioTrack, createLocalVideoTrack } from 'livekit-client';
 
 export default function StudioPage() {
   const router = useRouter();
@@ -26,7 +27,6 @@ export default function StudioPage() {
   const [host, setHost] = useState<boolean>(true);
   const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
   const [sessionToken, setSessionToken] = useState<string>(''); // room token
-
   useEffect(() => {
     if (session.status === 'loading') return; // 🚫 wait for actual status
     if (session.status === 'unauthenticated') {
@@ -54,14 +54,22 @@ export default function StudioPage() {
         // console.log("parsedData in fetchOnGoingSession is ", parsedData.roomToken);
         const link = new URL(`${window.location.origin}/studio/${slugId}?t=${parsedData.roomToken}`);
         console.log("link in fetchOnGoingSession is ", link.toString());
+        if(!previewStream){
+          const videoTrack = await createLocalVideoTrack();
+          const audioTrack = await createLocalAudioTrack(); 
+          const stream = new MediaStream([
+            videoTrack.mediaStreamTrack,
+            audioTrack.mediaStreamTrack,
+          ]);
+          setPreviewStream(stream);
+        }
         setLink(link.toString());
         setJoinedStudio(true);
         setSessionToken(parsedData.roomToken);
         setHost(true);
         setLoading(false);
-      }
     };
-  
+    }
     fetchOnGoingSession();
   }, [session.status, searchParams]);
   

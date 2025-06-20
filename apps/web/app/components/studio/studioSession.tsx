@@ -64,7 +64,6 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host}:{preview
   };
     useEffect(() => {
       // if (!isReadyToConnect) return;
-  
       let newRoom: Room | null = null;
       let isMounted = true;
   
