@@ -1,15 +1,20 @@
 import { AccessToken } from 'livekit-server-sdk';
 import { API_KEY, API_SECRET, LIVEKIT_URL } from '../server';
+import { Request, Response } from 'express';
 
+interface TokenGenerationRequest {
+  token: string;
+  metadata?: string;
+  email: string;
+}
 
-export const tokenGeneration = async (req, res)=>{
-    try {
-    const { token:roomToken, metadata, email } = req.body;
-    
-    if (!roomToken ||  !email) {
-      console.log("roomToken and email are required ", roomToken, email);
-      return res.status(400).json({ 
-        error: 'roomToken and email are required' 
+export const tokenGeneration = async (req: Request, res: Response) => {
+  try {
+    const { token: roomToken, metadata, email } = req.body as TokenGenerationRequest;
+
+    if (!roomToken || !email) {
+      return res.status(400).json({
+        error: 'roomToken and email are required'
       });
     }
 
@@ -30,14 +35,14 @@ export const tokenGeneration = async (req, res)=>{
     });
 
     const token = await at.toJwt();
-    
-    res.json({
+
+    return res.json({
       token,
       wsUrl: LIVEKIT_URL,
     });
 
   } catch (error) {
-    console.error('Token generation error:', error);
-    res.status(500).json({ error: 'Failed to generate token' });
+    console.error('Token generation error:', (error as Error).message);
+    return res.status(500).json({ error: 'Failed to generate token' });
   }
-}
+};

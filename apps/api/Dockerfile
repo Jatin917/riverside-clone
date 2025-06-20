@@ -13,10 +13,10 @@ COPY turbo.json ./
 # Copy all workspace package.json files
 COPY apps/web/package.json ./apps/web/
 COPY apps/api/package.json ./apps/api/
-COPY packages/db/package.json ./packages/db/
-COPY packages/*/package.json ./packages/*/
+# COPY packages/db/package.json ./packages/db/
+COPY packages ./packages
 
-RUN corepack enable && corepack prepare yarn@3.6.1 --activate
+RUN corepack enable && corepack prepare yarn@3.6.1 --activate 
 
 # Install dependencies
 RUN yarn install 
@@ -29,7 +29,8 @@ COPY --from=deps /app/.yarn ./.yarn
 COPY . .
 
 # Generate Prisma client first
-RUN yarn workspace db generate
+RUN corepack enable && corepack prepare yarn@3.6.1 --activate
+RUN yarn workspace @repo/db db:generate 
 
 # Then build the API
 RUN yarn workspace api build

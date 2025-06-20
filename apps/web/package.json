@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@repo/db": "*",
-    "@repo/ui": "*",
+    "@repo/typescript-config": "workspace:*",
+    "@repo/ui": "workspace:*",
     "@tailwindcss/postcss": "^4.1.10",
     "axios": "^1.9.0",
     "crypto": "^1.0.1",

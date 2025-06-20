@@ -13,23 +13,34 @@ COPY .yarn ./.yarn
 RUN mkdir -p apps/web apps/api packages/db packages/typescript-config packages/ui packages/eslint-config
 COPY apps/*/package.json ./apps/
 COPY packages/*/package.json ./packages/
+COPY apps/web/next.config.js ./apps/web/next.config.js
+COPY apps/web/postcss.config.mjs ./apps/web/postcss.config.mjs
+# COPY apps/web/tailwind.config.js ./apps/web/tailwind.config.js
 
 RUN corepack enable && corepack prepare yarn@3.6.1 --activate
+
 # Install dependencies
-RUN yarn install 
+RUN yarn install
 
 # Build the app
 FROM base AS builder
 WORKDIR /app
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/.yarn ./.yarn
 COPY . .
 
-# Generate Prisma client first
-RUN yarn workspace db generate
+# Ensure config files exist for Tailwind and PostCSS in the build context
+COPY apps/web/next.config.js ./apps/web/next.config.js
+COPY apps/web/postcss.config.mjs ./apps/web/postcss.config.mjs
+# COPY apps/web/tailwind.config.js ./apps/web/tailwind.config.js
 
-# Then build the API
-RUN yarn workspace api build
+# Generate Prisma client first
+RUN corepack enable && corepack prepare yarn@3.6.1 --activate
+RUN yarn workspace @repo/db db:generate
+
+# Then build the web app
+RUN yarn workspace web build
 
 # Production image
 FROM base AS runner
@@ -38,18 +49,32 @@ WORKDIR /app
 ENV NODE_ENV production
 
 RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 apiuser
+RUN adduser --system --uid 1001 nextjs
+
+# Static and public assets
+COPY --from=builder /app/apps/web/public ./apps/web/public
+COPY --from=builder /app/apps/web/public ./standalone/public
+
+# Required config files for runtime (if needed)
+COPY apps/web/next.config.js ./apps/web/next.config.js
+COPY apps/web/postcss.config.mjs ./apps/web/postcss.config.mjs
+# COPY apps/web/tailwind.config.js ./apps/web/ .config.js
+
+# Set correct permission for prerender cache
+RUN mkdir -p ./apps/web/.next
+RUN chown nextjs:nodejs ./apps/web/.next
 
 # Copy built application
-COPY --from=builder --chown=apiuser:nodejs /app/apps/api/dist ./apps/api/dist
-COPY --from=builder --chown=apiuser:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=apiuser:nodejs /app/packages ./packages
-COPY --from=builder --chown=apiuser:nodejs /app/apps/api/package.json ./apps/api/
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./standalone
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./standalone/apps/web/.next/static
 
-USER apiuser
+# Copy generated Prisma client
+COPY --from=builder /app/packages/db/generated/prisma /app/standalone/apps/web/generated/prisma
 
-EXPOSE 3001
+USER nextjs
 
-ENV PORT 3001
+EXPOSE 3000
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
 
-CMD ["node", "apps/api/dist/index.js"]
+CMD ["node", "standalone/apps/web/server.js"]

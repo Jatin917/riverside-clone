@@ -7,13 +7,13 @@ import axios from 'axios';
 
 import CameraSetup from '@component/studio/studio';
 import StudioSession from '@component/studio/studioSession';
+import { createSessionAndToken, fetchLivekitToken, fetchOngoingSession } from '@lib/studio';
 
 export default function StudioPage() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const session = useSession();
-
   const slugId = Array.isArray(params.slugId) ? params.slugId[0] : params.slugId;
 
   const [email, setEmail] = useState<string | null>(null);
@@ -27,50 +27,64 @@ export default function StudioPage() {
   const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
   const [sessionToken, setSessionToken] = useState<string>(''); // room token
 
-  // ✅ Set email when session is loaded
   useEffect(() => {
+    if (session.status === 'loading') return; // 🚫 wait for actual status
     if (session.status === 'unauthenticated') {
       router.push('/');
       return;
     }
-
+  
+    // ✅ Authenticated user: set email
     if (session.data?.user?.email) {
       setEmail(session.data.user.email);
     }
-  }, [session, router]);
+  }, [session.status]);
+
+  
+  // jis bnde pr token url main hain wo bnda ongoing session nikal lega wahi se 
+  useEffect(() => {
+    if (
+      session.status !== 'authenticated' || // 🚫 skip if not ready
+      searchParams.get('t')
+    ) return;
+    const fetchOnGoingSession = async () => {
+      const data = await fetchOngoingSession(slugId as string);
+      if (data.session) {
+        const parsedData = JSON.parse(data.session);
+        // console.log("parsedData in fetchOnGoingSession is ", parsedData.roomToken);
+        const link = new URL(`${window.location.origin}/studio/${slugId}?t=${parsedData.roomToken}`);
+        console.log("link in fetchOnGoingSession is ", link.toString());
+        setLink(link.toString());
+        setJoinedStudio(true);
+        setSessionToken(parsedData.roomToken);
+        setHost(true);
+        setLoading(false);
+      }
+    };
+  
+    fetchOnGoingSession();
+  }, [session.status, searchParams]);
+  
 
   // ✅ Once email is ready, look for token in URL and fetch LiveKit token
   useEffect(() => {
     const tokenFromUrl = searchParams.get('t');
     if (tokenFromUrl && email && !joinedStudio) {
-      setSessionToken(tokenFromUrl);
-      setJoinedStudio(true);
-      setHost(false);
-      fetchToken(tokenFromUrl);
+      setHost(false); // when the token is present in the url means the user is not the host 
+      fetchToken(email, tokenFromUrl);
     }
-  }, [searchParams, email, joinedStudio]);
+  }, [searchParams, email]);
 
   // ✅ Fetch LiveKit token from your backend
-  const fetchToken = async (token: string) => {
+  const fetchToken = async (email: string, token: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/livekit-token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          token,
-          isStreamer: 'true',
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get access token');
-      }
-
-      const data = await response.json();
-      setLivekitToken(data.token);
-      setWsUrl(data.wsUrl);
+      const {livekitToken, wsUrl} = await fetchLivekitToken(email, token);
+      // console.log("livekitToken in page is ", livekitToken);
+      setLivekitToken(livekitToken);
+      setWsUrl(wsUrl);
       setLoading(false);
+      setJoinedStudio(true);
+      setSessionToken(token);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
       setLoading(false);
@@ -82,27 +96,13 @@ export default function StudioPage() {
     try {
       if (!slugId || !email) throw new Error('Missing data');
 
-      const sessionRes = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/session`, {
-        slugId,
-      });
-
-      const session = sessionRes.data.session;
-      if (!session?.id) throw new Error('Session creation failed');
-
-      const tokenRes = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/session-token`, {
-        slugId,
-        sessionId: session.id,
-      });
-
-      const token = tokenRes.data.token;
-
+     const token = await createSessionAndToken(slugId);
       const studioUrl = new URL(`${window.location.origin}/studio/${slugId}`);
       studioUrl.searchParams.set('t', token);
 
       setSessionToken(token);
       setLink(studioUrl.toString());
-      setJoinedStudio(true);
-      await fetchToken(token);
+      await fetchToken(email, token);
     } catch (error) {
       console.error('Join Studio Failed:', error);
     }

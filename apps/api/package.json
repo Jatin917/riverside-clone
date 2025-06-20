@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc -b",
+    "build": "npx tsc -b",
     "start": "node dist/server.js",
     "start:dev": "ts-node src/server.ts",
     "dev": "nodemon",
@@ -15,6 +15,8 @@
   "description": "",
   "dependencies": {
     "@repo/db": "*",
+    "@repo/typescript-config": "workspace:*",
+    "@repo/ui": "workspace:*",
     "@types/express": "^5.0.2",
     "@types/ws": "^8.18.1",
     "braces": "^3.0.3",
@@ -24,6 +26,7 @@
     "livekit-server-sdk": "^2.13.0",
     "nanoid": "^3.3.11",
     "nodemon": "^3.1.10",
+    "redis": "^5.5.6",
     "socket.io": "^4.8.1",
     "to-regex-range": "^5.0.1",
     "ws": "^8.18.2"

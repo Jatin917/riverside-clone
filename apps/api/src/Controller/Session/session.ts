@@ -1,12 +1,12 @@
 import { prisma } from "@repo/db";
 import { HTTP_STATUS } from "../../lib/types";
-import crypto from 'crypto'
-import { sessionMap } from "../../server";
-import { error } from "console";
+import crypto from 'crypto';
+import { Request, Response } from "express";
+import { RedisClient } from "../../services/redis";
 
-export const createSession = async (req, res) => {
+export const createSession = async (req: Request, res: Response) => {
   try {
-    const slugId = req.body?.slugId;
+    const slugId = req.body?.slugId as string;
     if (!slugId) {
       return res.status(400).json({ message: "Missing slugId in request" });
     }
@@ -20,17 +20,16 @@ export const createSession = async (req, res) => {
       data: {
         studioId: studio.id,
         startedAt: new Date(),
-        endedAt: new Date() // abhi ke liye default kr diya hain changes krna padegea
+        endedAt: new Date(), // For now default; needs update later
       },
     });
-
     await prisma.participantSession.create({
       data: {
         sessionId: session.id,
         userId: studio.ownerId,
-        name: "Host", // or studio.owner.name
-        leftAt:new Date(), // abhi ke liye default kr diya hain changes krna padegea
+        name: "Host",
         joinedAt: new Date(),
+        leftAt: new Date(), // For now default; needs update later
       },
     });
 
@@ -48,30 +47,49 @@ export const createSession = async (req, res) => {
   }
 };
 
+export const createToken = async (req: Request, res: Response) => {
+  try {
+    const { slugId, sessionId } = req.body as { slugId: string; sessionId: string };
+    const token = crypto.randomBytes(6).toString('base64url');
+    const client = await RedisClient();
+    // this is on going session for the studio when the user reconnects to the studio he should get the room token(token->sessionId+slugId) so that he can join the session again
+    await client.set(`sessionToken-${token}`, JSON.stringify({ slugId, sessionId }));
+    await client.set(`ongoingSession:${slugId}`, JSON.stringify({
+      roomToken: token,
+    }));
 
-export const createToken = async (req, res) =>{
-    try {
-    const {slugId, sessionId} = req.body;
-    const token = crypto.randomBytes(10).toString('base64url');
-    sessionMap.set(token, {slugId, sessionId});
-    return res.status(HTTP_STATUS.OK).json({token});
-    } catch (error) {
-        console.log((error as Error).message);
-        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    return res.status(HTTP_STATUS.OK).json({ token });
+  } catch (error) {
+    console.error((error as Error).message);
+    return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: "Internal server error" });
+  }
+};
+
+export const getSessionToken = async (req: Request, res: Response) => {
+  try {
+    const token = req.query.token as string;
+    const client = await RedisClient();
+    let data = await client.get(`sessionToken-${token}`);
+    data = JSON.parse(data as string);
+    if (!data) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "No data found for this token" });
     }
+    return res.status(HTTP_STATUS.OK).json({ data });
+  } catch (error) {
+    console.error((error as Error).message);
+    return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: "Internal server error" });
+  }
+};
+
+
+export const getOngoingSession = async (req: Request, res: Response) => {
+  try {
+    const client = await RedisClient();
+    const slugId = req.query.slugId as string;
+    const session = await client.get(`ongoingSession:${slugId}`);
+    return res.status(HTTP_STATUS.OK).json({ session });
+  } catch (error) {
+    console.error((error as Error).message);
+    return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: "Internal server error" });
+  }
 }
-
-export const getSessionToken = async (req, res) =>{
-    try {
-        const token = req.query.token;
-        const data = sessionMap.get(token);
-        if(!data){
-            throw Error("No data Found for this token");
-            // return res.status(HTTP_STATUS.BAD_REQUEST).json({message:e});
-        }
-        return res.status(HTTP_STATUS.OK).json({data});
-    } catch (error) {
-        console.log((error as Error).message);
-        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR);
-    }
-} 
