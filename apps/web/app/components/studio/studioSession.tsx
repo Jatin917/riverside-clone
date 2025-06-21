@@ -208,7 +208,7 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host}:{preview
           <div className="flex-1 p-6 flex items-center justify-center">
             {/* This is the VideoFeed container, now without margin */}
             <div className="bg-black rounded-2xl w-full h-full flex items-center justify-center max-w-4xl">
-              <VideoFeed participantsTrack={mappedParticipantsTrack} previewStream={previewStream || undefined} />
+              <VideoFeed participantsTrack={participantsTrack} previewStream={previewStream || undefined} />
             </div>
           </div>
         </div>
