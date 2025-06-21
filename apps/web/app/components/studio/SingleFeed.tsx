@@ -44,7 +44,6 @@ const SingleVideoFeed = ({
           <video
             ref={videoRef}
             autoPlay
-            muted={isPreview}
             playsInline
             className="w-full h-full object-cover"
           />

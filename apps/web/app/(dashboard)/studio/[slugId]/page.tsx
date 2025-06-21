@@ -27,6 +27,7 @@ export default function StudioPage() {
   const [host, setHost] = useState<boolean>(true);
   const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
   const [sessionToken, setSessionToken] = useState<string>(''); // room token
+  console.log("livekitToken in page is ", joinedStudio);
   useEffect(() => {
     if (session.status === 'loading') return; // 🚫 wait for actual status
     if (session.status === 'unauthenticated') {
@@ -51,9 +52,7 @@ export default function StudioPage() {
       const data = await fetchOngoingSession(slugId as string);
       if (data.session) {
         const parsedData = JSON.parse(data.session);
-        // console.log("parsedData in fetchOnGoingSession is ", parsedData.roomToken);
         const link = new URL(`${window.location.origin}/studio/${slugId}?t=${parsedData.roomToken}`);
-        console.log("link in fetchOnGoingSession is ", link.toString());
         if(!previewStream){
           const videoTrack = await createLocalVideoTrack();
           const audioTrack = await createLocalAudioTrack(); 
@@ -63,9 +62,11 @@ export default function StudioPage() {
           ]);
           setPreviewStream(stream);
         }
+        const email = session.data?.user?.email as string;
+        await fetchToken(email, parsedData.roomToken);
         setLink(link.toString());
-        setJoinedStudio(true);
-        setSessionToken(parsedData.roomToken);
+        // setJoinedStudio(true);
+        // setSessionToken(parsedData.roomToken);
         setHost(true);
         setLoading(false);
     };
@@ -87,7 +88,7 @@ export default function StudioPage() {
   const fetchToken = async (email: string, token: string) => {
     try {
       const {livekitToken, wsUrl} = await fetchLivekitToken(email, token);
-      // console.log("livekitToken in page is ", livekitToken);
+      console.log("livekitToken in page is ", livekitToken, wsUrl);
       setLivekitToken(livekitToken);
       setWsUrl(wsUrl);
       setLoading(false);

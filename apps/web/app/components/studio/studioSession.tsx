@@ -69,6 +69,7 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host}:{preview
   
       const connectToRoom = async () => {
         try {
+          console.log(wsUrl, livekitToken);
           console.log('🔄 Starting room connection...', wsUrl, livekitToken);
           if (!wsUrl || !livekitToken) throw new Error('Missing wsUrl or livekitToken');
   
