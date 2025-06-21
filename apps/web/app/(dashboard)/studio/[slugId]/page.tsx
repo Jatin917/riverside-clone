@@ -53,22 +53,10 @@ export default function StudioPage() {
       if (data.session) {
         const parsedData = JSON.parse(data.session);
         const link = new URL(`${window.location.origin}/studio/${slugId}?t=${parsedData.roomToken}`);
-        // if(!previewStream){
-        //   const videoTrack = await createLocalVideoTrack();
-        //   const audioTrack = await createLocalAudioTrack(); 
-        //   const stream = new MediaStream([
-        //     videoTrack.mediaStreamTrack,
-        //     audioTrack.mediaStreamTrack,
-        //   ]);
-        //   setPreviewStream(stream);
-        // }
         const email = session.data?.user?.email as string;
         await fetchToken(email, parsedData.roomToken);
         setLink(link.toString());
-        // setJoinedStudio(true);
-        // setSessionToken(parsedData.roomToken);
         setHost(true);
-        // setLoading(false);
     };
     }
     fetchOnGoingSession();
@@ -92,7 +80,6 @@ export default function StudioPage() {
       setLivekitToken(livekitToken);
       setWsUrl(wsUrl);
       setLoading(false);
-      // setJoinedStudio(true);
       setSessionToken(token);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -103,6 +90,7 @@ export default function StudioPage() {
   // ✅ Called when host joins
   const handleJoinStudio = async () => {
     try {
+      if(joinedStudio) return;
       if (!slugId || !email) throw new Error('Missing data');
       if(!sessionToken){
         const token = await createSessionAndToken(slugId);

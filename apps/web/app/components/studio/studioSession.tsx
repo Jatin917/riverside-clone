@@ -151,7 +151,7 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host}:{preview
   
   return (
     <div className="h-screen bg-gray-900 flex flex-col">
-      <StudioHeader />
+      <StudioHeader link={link}  />
       
       <div className="flex-1 flex">
         {/* Main Content */}
