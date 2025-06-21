@@ -79,7 +79,7 @@ const InviteModal = ({
                 <select 
                   value={selectedRole}
                   onChange={(e) => setSelectedRole(e.target.value)}
-                  className="bg-gray-700 text-white px-3 py-2 appearance-none pr-8 focus:outline-none focus:ring-2 focus:ring-purple-500 border-t border-b border-gray-700 h-full min-h-[40px] rounded-md"
+                  className="bg-gray-700 text-white px-3 py-2 appearance-none pr-8 border-t border-b border-gray-700 h-full min-h-[40px] rounded-md focus:outline-none focus:ring-0 focus:border-transparent"
                 >
                   <option>Guest</option>
                   <option>Host</option>
@@ -89,7 +89,7 @@ const InviteModal = ({
               </div>
               <button 
                 onClick={handleCopyLink}
-                className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center space-x-2 border border-[#7c3aed] border-l-0 h-full min-h-[40px]"
+                className="bg-[#7c3aed] text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center space-x-2 border border-[#7c3aed] border-l-0 h-full min-h-[40px] focus:outline-none focus:ring-0 focus:border-transparent"
               >
                 {linkCopied ? (
                   <>
@@ -128,13 +128,13 @@ const InviteModal = ({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="example@email.com"
-                className="flex-1 bg-gray-700 text-white px-3 py-2 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-700 min-w-0 h-full min-h-[40px] mr-2"
+                className="flex-1 bg-gray-700 text-white px-3 py-2 rounded-md placeholder-gray-400 border border-gray-700 min-w-0 h-full min-h-[40px] mr-2 focus:outline-none focus:ring-0 focus:border-transparent"
               />
               <div className="relative mr-2">
                 <select 
                   value={selectedRole}
                   onChange={(e) => setSelectedRole(e.target.value)}
-                  className="bg-gray-700 text-white px-3 py-2 appearance-none pr-8 focus:outline-none focus:ring-2 focus:ring-purple-500 border-t border-b border-gray-700 h-full min-h-[40px] rounded-md"
+                  className="bg-gray-700 text-white px-3 py-2 appearance-none pr-8 border-t border-b border-gray-700 h-full min-h-[40px] rounded-md focus:outline-none focus:ring-0 focus:border-transparent"
                 >
                   <option>Guest</option>
                   <option>Host</option>
@@ -145,7 +145,7 @@ const InviteModal = ({
               <button 
                 onClick={handleSendInvite}
                 disabled={!email.trim()}
-                className="bg-[#7c3aed] hover:bg-[#6d28d9] disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md transition-colors border border-[#7c3aed] border-l-0 h-full min-h-[40px]"
+                className="bg-[#7c3aed]  disabled:cursor-not-allowed text-white px-4 py-2 rounded-md transition-colors border border-[#7c3aed] border-l-0 h-full min-h-[40px] focus:outline-none focus:ring-0 focus:border-transparent"
               >
                 Send invite
               </button>

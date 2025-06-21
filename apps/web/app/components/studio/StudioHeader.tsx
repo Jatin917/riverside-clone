@@ -2,7 +2,12 @@ import React, { useState } from 'react';
 import { ChevronLeft, Plus, MessageCircle, Settings, Users, X, Link, Mail, ChevronDown, Copy, Check } from 'lucide-react';
 import InviteModal from './InviteModal';
 
-const StudioHeader = ({ link }: { link: string | null }) => {
+interface StudioHeaderProps {
+  link: string | null;
+  onInvite?: () => void;
+}
+
+const StudioHeader = ({ link, onInvite }: StudioHeaderProps) => {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState('Guest');
   const [email, setEmail] = useState('');
@@ -45,7 +50,7 @@ const StudioHeader = ({ link }: { link: string | null }) => {
           </button>
           
           <button 
-            onClick={() => setIsInviteModalOpen(true)}
+            onClick={onInvite ? onInvite : () => setIsInviteModalOpen(true)}
             className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md flex items-center space-x-2 transition-colors"
           >
             <Users className="w-4 h-4" />
@@ -53,7 +58,9 @@ const StudioHeader = ({ link }: { link: string | null }) => {
           </button>
         </div>
       </header>
-      <InviteModal setIsInviteModalOpen={setIsInviteModalOpen} isInviteModalOpen={isInviteModalOpen} link={link as string} selectedRole={selectedRole} setSelectedRole={setSelectedRole} email={email} setEmail={setEmail} />
+      {!onInvite && (
+        <InviteModal setIsInviteModalOpen={setIsInviteModalOpen} isInviteModalOpen={isInviteModalOpen} link={link as string} selectedRole={selectedRole} setSelectedRole={setSelectedRole} email={email} setEmail={setEmail} />
+      )}
     </>
   );
 };

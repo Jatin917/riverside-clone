@@ -6,7 +6,9 @@ import VideoFeed from './VideoFeed'
 import Sidebar from './SideBar'
 import ControlBar from './ControlBar'
 import InvitePanel from './InvitePanel'
-import { Room, RoomEvent, ConnectionState, RemoteParticipant, RemoteTrack } from 'livekit-client'
+import InviteModal from './InviteModal'
+import { Room, RoomEvent, ConnectionState, RemoteParticipant, RemoteTrack, TrackPublication } from 'livekit-client'
+import { Users, MessageCircle, Settings, FileText, Music, Grid3X3 } from 'lucide-react'
 
 // Types
 interface Participant {
@@ -26,13 +28,16 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host}:{preview
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const [participants, setParticipants] = useState<RemoteParticipant[]>([]);
   const [participantsTrack, setParticipantsTrack] = useState<RemoteTrack[]>([]);
-  const [isOpen, setIsOpen] = useState(true);
-    const handleLeave = () => {
-      console.log("handleLeave");
-      setIsOpen(false);
-    }
+  const [isInvitePanelOpen, setIsInvitePanelOpen] = useState(host);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
-    const handleStreamerSetup = async (newRoom: Room, isMounted: boolean) => {
+  const handleLeave = () => {
+    console.log("handleLeave");
+    setIsInvitePanelOpen(false);
+  }
+
+  const handleStreamerSetup = async (newRoom: Room, isMounted: boolean) => {
     try {
       console.log("handleStreamerSetup is ", isMounted);
       if (!isMounted || !previewStream) return;
@@ -62,125 +67,202 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host}:{preview
       throw error;
     }
   };
-    useEffect(() => {
-      // if (!isReadyToConnect) return;
-      let newRoom: Room | null = null;
-      let isMounted = true;
-  
-      const connectToRoom = async () => {
-        try {
-          console.log(wsUrl, livekitToken);
-          console.log('🔄 Starting room connection...', wsUrl, livekitToken);
-          if (!wsUrl || !livekitToken) throw new Error('Missing wsUrl or livekitToken');
-  
-          newRoom = new Room({ adaptiveStream: true, dynacast: true });
-          if (!isMounted) return;
-  
-          setRoom(newRoom);
-  
-          newRoom.on(RoomEvent.Connected, () => {
-            console.log('✅ Successfully connected to room');
-            setIsConnected(true);
-            setConnectionError('');
-          });
-  
-          newRoom.on(RoomEvent.Disconnected, (reason) => {
-            console.log('❌ Disconnected from room:', reason);
-            setIsConnected(false);
-          });
-  
-          newRoom.on(RoomEvent.ConnectionStateChanged, (state) => {
-            console.log('🔄 Connection state changed:', state);
-            setIsConnected(state === ConnectionState.Connected);
-          });
-  
-          newRoom.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
-            console.log('👤 Participant connected:', participant.identity);
-            setParticipants((prev) => [...prev, participant]);
-          });
-  
-          newRoom.on(RoomEvent.ParticipantDisconnected, (participant: RemoteParticipant) => {
-            console.log('👤 Participant disconnected:', participant.identity);
-            setParticipants((prev) => prev.filter((p) => p.identity !== participant.identity));
-          });
-  
-          newRoom.on(RoomEvent.TrackSubscribed, (track: any) => {
-            console.log('📹 Track subscribed:', track.kind);
-            if (track.kind === 'video') {
-              setParticipantsTrack((prev) => {
-                const exists = prev.find((t) => t.sid === track.sid);
-                return exists ? prev : [...prev, track];
-              });
-            }
-          });
-  
-          newRoom.on(RoomEvent.TrackUnsubscribed, (track: any) => {
-            console.log('📹 Track unsubscribed:', track.kind);
-            if (track.kind === 'video') {
-              setParticipantsTrack((prev) => prev.filter((t) => t.sid !== track.sid));
-            }
-          });
-  
-          await newRoom.connect(wsUrl, livekitToken);
-          if (!isMounted) {
-            newRoom.disconnect();
-            return;
-          }
-  
-          const existingParticipants = Array.from(newRoom.remoteParticipants.values());
-          setParticipants(existingParticipants);
-  
-          await handleStreamerSetup(newRoom, isMounted);
-        } catch (error: any) {
-          console.error('❌ Error connecting to room:', error);
-          setConnectionError(error.message || 'Failed to connect to room');
+
+  useEffect(() => {
+    // if (!isReadyToConnect) return;
+    let newRoom: Room | null = null;
+    let isMounted = true;
+
+    const connectToRoom = async () => {
+      try {
+        console.log(wsUrl, livekitToken);
+        console.log('🔄 Starting room connection...', wsUrl, livekitToken);
+        if (!wsUrl || !livekitToken) throw new Error('Missing wsUrl or livekitToken');
+
+        newRoom = new Room({ adaptiveStream: true, dynacast: true });
+        if (!isMounted) return;
+
+        setRoom(newRoom);
+
+        newRoom.on(RoomEvent.Connected, () => {
+          console.log('✅ Successfully connected to room');
+          setIsConnected(true);
+          setConnectionError('');
+        });
+
+        newRoom.on(RoomEvent.Disconnected, (reason) => {
+          console.log('❌ Disconnected from room:', reason);
           setIsConnected(false);
-        }
-      };
-  
-      connectToRoom();
-  
-      return () => {
-        isMounted = false;
-        if (newRoom) {
-          newRoom.removeAllListeners();
+        });
+
+        newRoom.on(RoomEvent.ConnectionStateChanged, (state) => {
+          console.log('🔄 Connection state changed:', state);
+          setIsConnected(state === ConnectionState.Connected);
+        });
+
+        newRoom.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
+          console.log('👤 Participant connected:', participant.identity);
+          setParticipants((prev) => [...prev, participant]);
+        });
+
+        newRoom.on(RoomEvent.ParticipantDisconnected, (participant: RemoteParticipant) => {
+          console.log('👤 Participant disconnected:', participant.identity);
+          setParticipants((prev) => prev.filter((p) => p.identity !== participant.identity));
+        });
+
+        newRoom.on(RoomEvent.TrackSubscribed, (track: any) => {
+          console.log('📹 Track subscribed:', track.kind);
+          if (track.kind === 'video') {
+            setParticipantsTrack((prev) => {
+              const exists = prev.find((t) => t.sid === track.sid);
+              return exists ? prev : [...prev, track];
+            });
+          }
+        });
+
+        newRoom.on(RoomEvent.TrackUnsubscribed, (track: any) => {
+          console.log('📹 Track unsubscribed:', track.kind);
+          if (track.kind === 'video') {
+            setParticipantsTrack((prev) => prev.filter((t) => t.sid !== track.sid));
+          }
+        });
+
+        await newRoom.connect(wsUrl, livekitToken);
+        if (!isMounted) {
           newRoom.disconnect();
+          return;
         }
-      };
-    }, [livekitToken, wsUrl, isReadyToConnect, previewStream]);
-  
+
+        const existingParticipants = Array.from(newRoom.remoteParticipants.values());
+        setParticipants(existingParticipants);
+
+        await handleStreamerSetup(newRoom, isMounted);
+      } catch (error: any) {
+        console.error('❌ Error connecting to room:', error);
+        setConnectionError(error.message || 'Failed to connect to room');
+        setIsConnected(false);
+      }
+    };
+
+    connectToRoom();
+
+    return () => {
+      isMounted = false;
+      if (newRoom) {
+        newRoom.removeAllListeners();
+        newRoom.disconnect();
+      }
+    };
+  }, [livekitToken, wsUrl, isReadyToConnect, previewStream]);
+
+  // Handler for Invite button in header
+  const handleInviteClick = () => setIsInviteModalOpen(true);
+
+  // Handler for closing InvitePanel
+  const handleCloseInvitePanel = () => setIsInvitePanelOpen(false);
+
+  // Handler for closing Sidebar
+  const handleCloseSidebar = () => setIsSidebarOpen(false);
+  // Handler for opening Sidebar
+  const handleOpenSidebar = () => setIsSidebarOpen(true);
+
+  // Map LiveKit participants/tracks to ParticipantTrack[]
+  const mappedParticipantsTrack = participants.map((participant) => {
+    // Get all video tracks for this participant
+    const videoTracks = participant.getTrackPublications().filter(
+      (pub) => pub.track && pub.track.kind === 'video'
+    );
+    const videoTrack = videoTracks.length > 0 ? videoTracks[0].track : undefined;
+    let stream: MediaStream | null = null;
+    if (videoTrack && videoTrack.mediaStreamTrack) {
+      stream = new MediaStream([videoTrack.mediaStreamTrack]);
+    }
+    return {
+      id: participant.identity,
+      name: participant.name || participant.identity,
+      isHost: false,
+      videoEnabled: !!videoTrack,
+      audioEnabled: true, // You can refine this if you track audio
+      quality: 'HD',
+      stream,
+    };
+  });
+
   return (
-    <div className="h-screen bg-gray-900 flex flex-col">
-      <StudioHeader link={link}  />
-      
-      <div className="flex-1 flex">
-        {/* Main Content */}
-        <div className="flex-1 p-6">
-          <div className="h-full flex items-center justify-center">
-            <div className="w-full max-w-4xl">
-              <VideoFeed participantsTrack={participantsTrack} previewStream={previewStream} />
+    <div className="h-screen bg-black flex items-stretch p-4">
+      {/* Main Content Container (shrinks when sidebar is open) */}
+      <div className={`flex flex-col bg-[#1C1C1C] rounded-xl transition-all duration-300 ${isSidebarOpen ? 'w-[calc(100%-27rem)]' : 'w-full'}`}>
+        <StudioHeader link={link} onInvite={handleInviteClick} />
+        <div className="flex-1 flex bg-transparent relative">
+          {/* InvitePanel (side by side with video feed) */}
+          {isInvitePanelOpen && (
+            <div className="w-full max-w-sm transition-all duration-300 mr-4">
+              <InvitePanel 
+                studioLink={link}
+                hostName={"Jatin Chandel"}
+                onClose={handleCloseInvitePanel}
+              />
+            </div>
+          )}
+          {/* This is the new "frame" container with padding */}
+          <div className="flex-1 p-6 flex items-center justify-center">
+            {/* This is the VideoFeed container, now without margin */}
+            <div className="bg-black rounded-2xl w-full h-full flex items-center justify-center max-w-4xl">
+              <VideoFeed participantsTrack={mappedParticipantsTrack} previewStream={previewStream || undefined} />
             </div>
           </div>
         </div>
-        
-        <Sidebar />
+        <ControlBar
+          isRecording={false}
+          onToggleRecording={() => void(!false)}
+          audioEnabled={false}
+          onToggleAudio={() => void(!false)}
+          videoEnabled={false}
+          onToggleVideo={() => void(!false)}
+          onLeave={() => console.log('Leave')}
+        />
+      </div>
+
+      {/* Sidebar and its open buttons (always on right) */}
+      <div className="fixed right-4 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center space-y-3">
+        <button onClick={handleOpenSidebar} className="bg-[#232323] text-white rounded-full shadow p-3 transition-all duration-300 hover:bg-[#333] flex items-center justify-center" aria-label="Open People Sidebar">
+          <Users className="w-6 h-6" />
+        </button>
+        <button className="bg-[#232323] text-white rounded-full shadow p-3 transition-all duration-300 hover:bg-[#333] flex items-center justify-center" aria-label="Open Chat Sidebar">
+          <MessageCircle className="w-6 h-6" />
+        </button>
+        <button className="bg-[#232323] text-white rounded-full shadow p-3 transition-all duration-300 hover:bg-[#333] flex items-center justify-center" aria-label="Open Brand Sidebar">
+          <Settings className="w-6 h-6" />
+        </button>
+        <button className="bg-[#232323] text-white rounded-full shadow p-3 transition-all duration-300 hover:bg-[#333] flex items-center justify-center" aria-label="Open Text Sidebar">
+          <FileText className="w-6 h-6" />
+        </button>
+        <button className="bg-[#232323] text-white rounded-full shadow p-3 transition-all duration-300 hover:bg-[#333] flex items-center justify-center" aria-label="Open Media Sidebar">
+          <Music className="w-6 h-6" />
+        </button>
+        <button className="bg-[#232323] text-white rounded-full shadow p-3 transition-all duration-300 hover:bg-[#333] flex items-center justify-center" aria-label="Open Layout Sidebar">
+          <Grid3X3 className="w-6 h-6" />
+        </button>
+      </div>
+      {/* Sidebar appears to the left of the buttons with margin */}
+      <div className={`fixed top-4 bottom-4 right-0 w-80 z-40 transition-transform duration-300 ${isSidebarOpen ? '-translate-x-[5.5rem]' : 'translate-x-full'}`}>
+        <Sidebar onClose={handleCloseSidebar} />
       </div>
       
-      <ControlBar
-        isRecording={false}
-        onToggleRecording={() => void(!false)}
-        audioEnabled={false}
-        onToggleAudio={() => void(!false)}
-        videoEnabled={false}
-        onToggleVideo={() => void(!false)}
-        onLeave={() => console.log('Leave')}
-      />
-      
-    {host && isOpen && <InvitePanel 
-        studioLink={link}
-        hostName={"Jatin Chandel"}
-        onClose={handleLeave} 
-      />}
+      {/* Invite Modal */}
+      {isInviteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 transition-opacity duration-300">
+          <InviteModal
+            setIsInviteModalOpen={setIsInviteModalOpen}
+            isInviteModalOpen={isInviteModalOpen}
+            link={link || ''}
+            selectedRole={"Guest"}
+            setSelectedRole={()=>{}}
+            email={""}
+            setEmail={()=>{}}
+          />
+        </div>
+      )}
     </div>
   )
 }

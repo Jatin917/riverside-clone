@@ -1,21 +1,26 @@
-import { Users, MessageCircle, Settings, FileText, Music, Grid3X3 } from "lucide-react"
+import { Users, MessageCircle, Settings, FileText, Music, Grid3X3, X } from "lucide-react"
+import React from "react";
 
 // Sidebar Component
-const Sidebar = () => {
+const Sidebar = ({ onClose }: { onClose: () => void }) => {
   return (
-    <aside className="w-80 bg-gray-900 border-l border-gray-700 flex flex-col">
+    <aside
+      className="relative h-full w-full bg-[#232323] rounded-lg border-l border-gray-700 flex flex-col"
+    >
+      {/* Close (cross) button */}
+      <button
+        className="absolute top-4 right-4 text-gray-400 hover:text-white bg-black-800 rounded-full p-2 z-50 transition-colors"
+        onClick={onClose}
+        aria-label="Close sidebar"
+      >
+        <X className="w-5 h-5" />
+      </button>
       {/* Recording Info */}
       <div className="p-4 border-b border-gray-700">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-white font-medium">Recording info</h3>
-          <button className="text-gray-400 hover:text-white">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
         </div>
       </div>
-      
       {/* Participants */}
       <div className="flex-1 p-4">
         <div className="space-y-4">
@@ -34,7 +39,6 @@ const Sidebar = () => {
               </div>
             </div>
           </div>
-          
           <div className="border-t border-gray-700 pt-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-gray-400 text-sm">Echo cancellation</span>
@@ -46,7 +50,6 @@ const Sidebar = () => {
           </div>
         </div>
       </div>
-      
       {/* Bottom Controls */}
       <div className="p-4 border-t border-gray-700 space-y-3">
         <button className="w-full flex items-center justify-center space-x-2 text-gray-400 hover:text-white">
