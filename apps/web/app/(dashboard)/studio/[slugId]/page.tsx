@@ -53,22 +53,22 @@ export default function StudioPage() {
       if (data.session) {
         const parsedData = JSON.parse(data.session);
         const link = new URL(`${window.location.origin}/studio/${slugId}?t=${parsedData.roomToken}`);
-        if(!previewStream){
-          const videoTrack = await createLocalVideoTrack();
-          const audioTrack = await createLocalAudioTrack(); 
-          const stream = new MediaStream([
-            videoTrack.mediaStreamTrack,
-            audioTrack.mediaStreamTrack,
-          ]);
-          setPreviewStream(stream);
-        }
+        // if(!previewStream){
+        //   const videoTrack = await createLocalVideoTrack();
+        //   const audioTrack = await createLocalAudioTrack(); 
+        //   const stream = new MediaStream([
+        //     videoTrack.mediaStreamTrack,
+        //     audioTrack.mediaStreamTrack,
+        //   ]);
+        //   setPreviewStream(stream);
+        // }
         const email = session.data?.user?.email as string;
         await fetchToken(email, parsedData.roomToken);
         setLink(link.toString());
         // setJoinedStudio(true);
         // setSessionToken(parsedData.roomToken);
         setHost(true);
-        setLoading(false);
+        // setLoading(false);
     };
     }
     fetchOnGoingSession();
@@ -92,7 +92,7 @@ export default function StudioPage() {
       setLivekitToken(livekitToken);
       setWsUrl(wsUrl);
       setLoading(false);
-      setJoinedStudio(true);
+      // setJoinedStudio(true);
       setSessionToken(token);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -104,14 +104,15 @@ export default function StudioPage() {
   const handleJoinStudio = async () => {
     try {
       if (!slugId || !email) throw new Error('Missing data');
-
-     const token = await createSessionAndToken(slugId);
-      const studioUrl = new URL(`${window.location.origin}/studio/${slugId}`);
-      studioUrl.searchParams.set('t', token);
-
-      setSessionToken(token);
-      setLink(studioUrl.toString());
-      await fetchToken(email, token);
+      if(!sessionToken){
+        const token = await createSessionAndToken(slugId);
+        const studioUrl = new URL(`${window.location.origin}/studio/${slugId}`);
+        studioUrl.searchParams.set('t', token);
+        setSessionToken(token);
+        setLink(studioUrl.toString());
+        await fetchToken(email, token);
+      }
+      setJoinedStudio(true);
     } catch (error) {
       console.error('Join Studio Failed:', error);
     }
