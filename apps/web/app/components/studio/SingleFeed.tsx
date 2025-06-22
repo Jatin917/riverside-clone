@@ -35,8 +35,8 @@ const SingleVideoFeed = ({
     }, [stream]);
   
     const containerClass = isMainSpeaker && layout !== 'grid' 
-      ? " relative bg-gray-900 rounded-xl overflow-hidden aspect-video border-2 border-purple-500"
-      : " relative bg-gray-900 rounded-xl overflow-hidden aspect-video hover:border-gray-600 border border-gray-800 transition-al10";
+      ? " relative bg-gray-900 rounded-2xl overflow-hidden aspect-video border-2 border-purple-500"
+      : " relative bg-gray-900 rounded-2xl overflow-hidden aspect-video hover:border-gray-600 border border-gray-800 transition-al10";
   
     return (
       <div className={containerClass}>

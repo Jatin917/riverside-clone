@@ -5,7 +5,7 @@ import React from "react";
 const Sidebar = ({ onClose }: { onClose: () => void }) => {
   return (
     <aside
-      className="relative h-full w-full bg-[#232323] rounded-lg border-l border-gray-700 flex flex-col"
+      className="relative h-full w-full bg-[#232323] rounded-lg  border-gray-700 flex flex-col"
     >
       {/* Close (cross) button */}
       <button
@@ -16,7 +16,7 @@ const Sidebar = ({ onClose }: { onClose: () => void }) => {
         <X className="w-5 h-5" />
       </button>
       {/* Recording Info */}
-      <div className="p-4 border-b border-gray-700">
+      <div className="p-4  border-gray-700">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-white font-medium">Recording info</h3>
         </div>
@@ -39,7 +39,7 @@ const Sidebar = ({ onClose }: { onClose: () => void }) => {
               </div>
             </div>
           </div>
-          <div className="border-t border-gray-700 pt-4">
+          <div className=" border-gray-700 pt-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-gray-400 text-sm">Echo cancellation</span>
               <div className="w-6 h-3 bg-purple-600 rounded-full relative">
@@ -51,7 +51,7 @@ const Sidebar = ({ onClose }: { onClose: () => void }) => {
         </div>
       </div>
       {/* Bottom Controls */}
-      <div className="p-4 border-t border-gray-700 space-y-3">
+      <div className="p-4  border-gray-700 space-y-3">
         <button className="w-full flex items-center justify-center space-x-2 text-gray-400 hover:text-white">
           <MessageCircle className="w-4 h-4" />
           <span>Chat</span>

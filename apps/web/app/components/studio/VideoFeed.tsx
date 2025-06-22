@@ -48,8 +48,7 @@ const VideoFeed = ({
   };
 
   return (
-    <div className="flex-1 p-6">
-      <div className={` grid gap-6 h-full ${getGridCols(allParticipants.length)}`}>
+      <div className={`grid rounded-2xl gap-6 h-full ${getGridCols(allParticipants.length)}`}>
         {/* Host Video */}
         <SingleVideoFeed 
           participant={hostParticipant}
@@ -66,7 +65,6 @@ const VideoFeed = ({
           />
         ))}
       </div>
-    </div>
   );
 };
 

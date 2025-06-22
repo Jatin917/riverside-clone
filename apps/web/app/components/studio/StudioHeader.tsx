@@ -15,9 +15,9 @@ const StudioHeader = ({ link, onInvite }: StudioHeaderProps) => {
 
   return (
     <>
-      <header className="bg-gray-900 border-b border-gray-700 px-4 py-3 flex items-center justify-between">
+      <header className="bg-[#0d0d0d] border-none border-gray-700 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <button className="text-gray-400 hover:text-white transition-colors">
+          <button className="text-[#232323] hover:bg-[#3d3d3d] hover:text-white transition-colors">
             <ChevronLeft className="w-5 h-5" />
           </button>
           
@@ -36,22 +36,22 @@ const StudioHeader = ({ link, onInvite }: StudioHeaderProps) => {
         </div>
         
         <div className="flex items-center space-x-3">
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center space-x-2 transition-colors">
+          <button className="bg-[#232323] hover:bg-[#3d3d3d] cursor-pointer text-white px-4 py-2 rounded-md flex items-center space-x-2 transition-colors">
             <Plus className="w-4 h-4" />
             <span>Live stream</span>
           </button>
           
-          <button className="text-gray-400 hover:text-white p-2 rounded-md hover:bg-gray-800 transition-colors">
+          <button className="text-gray-400 cursor-pointer hover:text-white p-2 rounded-md bg-[#232323] hover:bg-[#3d3d3d] transition-colors">
             <MessageCircle className="w-5 h-5" />
           </button>
           
-          <button className="text-gray-400 hover:text-white p-2 rounded-md hover:bg-gray-800 transition-colors">
+          <button className="text-gray-400 cursor-pointer hover:text-white p-2 rounded-md bg-[#232323] hover:bg-[#3d3d3d] transition-colors">
             <Settings className="w-5 h-5" />
           </button>
           
           <button 
             onClick={onInvite ? onInvite : () => setIsInviteModalOpen(true)}
-            className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md flex items-center space-x-2 transition-colors"
+            className="bg-[#232323] hover:bg-[#3d3d3d] cursor-pointer text-white px-4 py-2 rounded-md flex items-center space-x-2 transition-colors"
           >
             <Users className="w-4 h-4" />
             <span>Invite</span>

@@ -128,10 +128,10 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host}:{preview
         });
 
         await newRoom.connect(wsUrl, livekitToken);
-        if (!isMounted) {
-          newRoom.disconnect();
-          return;
-        }
+        // if (!isMounted) {
+        //   newRoom.disconnect();
+        //   return;
+        // }
 
         const existingParticipants = Array.from(newRoom.remoteParticipants.values());
         setParticipants(existingParticipants);
@@ -189,29 +189,19 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host}:{preview
   });
 
   return (
-    <div className="h-screen bg-black flex items-stretch p-4">
+    <div className="h-screen bg-[#0d0d0d] flex items-stretch p-4">
       {/* Main Content Container (shrinks when sidebar is open) */}
-      <div className={`flex flex-col bg-[#1C1C1C] rounded-xl transition-all duration-300 ${isSidebarOpen ? 'w-[calc(100%-27rem)]' : 'w-full'}`}>
+      <div className={`flex flex-col bg-black rounded-2xl transition-all duration-300 ${isSidebarOpen ? 'w-[calc(100%-27rem)]' : 'w-[calc(100%-5.5rem)]'}`}>
         <StudioHeader link={link} onInvite={handleInviteClick} />
-        <div className="flex-1 flex bg-transparent relative">
-          {/* InvitePanel (side by side with video feed) */}
-          {isInvitePanelOpen && (
-            <div className="w-full max-w-sm transition-all duration-300 mr-4">
-              <InvitePanel 
-                studioLink={link}
-                hostName={"Jatin Chandel"}
-                onClose={handleCloseInvitePanel}
-              />
-            </div>
-          )}
+        {/* <div className="flex-1 flex bg-transparent relative"> */}
           {/* This is the new "frame" container with padding */}
-          <div className="flex-1 p-6 flex items-center justify-center">
+          {/* <div className="flex-1 p-6 flex items-center justify-center h-full bg-black"> */}
             {/* This is the VideoFeed container, now without margin */}
-            <div className="bg-black rounded-2xl w-full h-full flex items-center justify-center max-w-4xl">
+            <div className="bg-black rounded-2xl w-full max-w-5xl h-[70vh] flex items-center justify-center m-auto py-2 px-6">
               <VideoFeed participantsTrack={participantsTrack} previewStream={previewStream || undefined} />
             </div>
-          </div>
-        </div>
+          {/* </div> */}
+        {/* </div> */}
         <ControlBar
           isRecording={false}
           onToggleRecording={() => void(!false)}
@@ -225,22 +215,22 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host}:{preview
 
       {/* Sidebar and its open buttons (always on right) */}
       <div className="fixed right-4 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center space-y-3">
-        <button onClick={handleOpenSidebar} className="bg-[#232323] text-white rounded-full shadow p-3 transition-all duration-300 hover:bg-[#333] flex items-center justify-center" aria-label="Open People Sidebar">
+        <button onClick={handleOpenSidebar} className=" text-white rounded-full shadow p-3 transition-all duration-300 hover:bg-[#333] flex items-center justify-center" aria-label="Open People Sidebar">
           <Users className="w-6 h-6" />
         </button>
-        <button className="bg-[#232323] text-white rounded-full shadow p-3 transition-all duration-300 hover:bg-[#333] flex items-center justify-center" aria-label="Open Chat Sidebar">
+        <button className=" text-white rounded-full shadow p-3 transition-all duration-300 hover:bg-[#333] flex items-center justify-center" aria-label="Open Chat Sidebar">
           <MessageCircle className="w-6 h-6" />
         </button>
-        <button className="bg-[#232323] text-white rounded-full shadow p-3 transition-all duration-300 hover:bg-[#333] flex items-center justify-center" aria-label="Open Brand Sidebar">
+        <button className=" text-white rounded-full shadow p-3 transition-all duration-300 hover:bg-[#333] flex items-center justify-center" aria-label="Open Brand Sidebar">
           <Settings className="w-6 h-6" />
         </button>
-        <button className="bg-[#232323] text-white rounded-full shadow p-3 transition-all duration-300 hover:bg-[#333] flex items-center justify-center" aria-label="Open Text Sidebar">
+        <button className=" text-white rounded-full shadow p-3 transition-all duration-300 hover:bg-[#333] flex items-center justify-center" aria-label="Open Text Sidebar">
           <FileText className="w-6 h-6" />
         </button>
-        <button className="bg-[#232323] text-white rounded-full shadow p-3 transition-all duration-300 hover:bg-[#333] flex items-center justify-center" aria-label="Open Media Sidebar">
+        <button className=" text-white rounded-full shadow p-3 transition-all duration-300 hover:bg-[#333] flex items-center justify-center" aria-label="Open Media Sidebar">
           <Music className="w-6 h-6" />
         </button>
-        <button className="bg-[#232323] text-white rounded-full shadow p-3 transition-all duration-300 hover:bg-[#333] flex items-center justify-center" aria-label="Open Layout Sidebar">
+        <button className=" text-white rounded-full shadow p-3 transition-all duration-300 hover:bg-[#333] flex items-center justify-center" aria-label="Open Layout Sidebar">
           <Grid3X3 className="w-6 h-6" />
         </button>
       </div>
