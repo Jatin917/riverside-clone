@@ -1,0 +1,22 @@
+{
+    "name": "@repo/db",
+    "version": "0.0.0",
+    "scripts": {
+        "db:generate": "npx prisma generate",
+        "db:migrate": "npx prisma migrate dev --skip-generate",
+        "db:deploy": "npx prisma migrate deploy"
+    },
+    "devDependencies": {
+        "@types/node": "^24.0.1",
+        "prettier": "^3.5.3",
+        "prisma": "^6.9.0",
+        "turbo": "^2.5.4",
+        "typescript": "^5.8.3"
+    },
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "dependencies": {
+        "@prisma/client": "^6.9.0"
+    }
+}
