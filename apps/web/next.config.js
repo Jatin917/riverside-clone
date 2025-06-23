@@ -17,9 +17,9 @@ const nextConfig = {
     config.resolve.alias['@component'] = path.resolve(__dirname, 'app/components');
     return config;
   },
-  experimental: {
-    turbo: true,
-  },
+  config: {
+    turbopack: true
+  }  
 };
 
 export default nextConfig;

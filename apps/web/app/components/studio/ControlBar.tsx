@@ -4,7 +4,7 @@ import { FileText, Mic, MicOff, Monitor, MonitorOff, PhoneOff, Video, VideoOff }
 import { useState } from "react"
 
 // Control Bar Component
-const ControlBar = ({ onLeave }: { onLeave: () => void }) => {
+const ControlBar = ({previewStream, onLeave }: {previewStream:MediaStream | null,  onLeave: () => void }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
@@ -19,8 +19,15 @@ const ControlBar = ({ onLeave }: { onLeave: () => void }) => {
     setAudioEnabled((prev) => !prev);
   }
   function onToggleVideo() {
-    setVideoEnabled((prev) => !prev);
+    if (!previewStream) return;
+  
+    previewStream.getVideoTracks().forEach(track => {
+      track.enabled = !videoEnabled;
+    });
+  
+    setVideoEnabled(prev => !prev);
   }
+  
   function onToggleMonitor() {
     setMonitorEnabled((prev) => !prev);
   }
