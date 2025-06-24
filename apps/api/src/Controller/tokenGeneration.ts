@@ -4,6 +4,7 @@ import { Request, Response } from 'express';
 import { RedisClient } from '../services/redis';
 import { error } from 'console';
 import { HTTP_STATUS } from '../lib/types';
+import { prisma } from '@repo/db';
 
 interface TokenGenerationRequest {
   token: string;
@@ -20,8 +21,13 @@ export const tokenGeneration = async (req: Request, res: Response) => {
         error: 'roomToken and email are required'
       });
     }
+    const user = await prisma.user.findFirst({where:{email}});
+    if(!user){
+      return res.status(HTTP_STATUS.NOT_FOUND).json({message:"No user found with this email"});
+    }
+    const userId = user?.id;
     const client = await RedisClient();
-    const alreadyExist = await client.get(`participateSession-${email}`);
+    const alreadyExist = await client.get(`participateSession-${userId}`);
     if(alreadyExist){
       const parseddata = JSON.parse(alreadyExist);
       if(parseddata.roomToken!=roomToken){
@@ -29,7 +35,7 @@ export const tokenGeneration = async (req: Request, res: Response) => {
         return res.status(HTTP_STATUS.CONFLICT).json({message:"Already in the room ", roomToken:parseddata.roomToken});
       }
     }
-    else await client.set(`participateSession-${email}`, JSON.stringify({joinedAt: new Date(), roomToken:roomToken}), {EX:7200})
+    else await client.set(`participateSession-${userId}`, JSON.stringify({joinedAt: new Date(), roomToken:roomToken}), {EX:7200})
 
     // Create access token
     const at = new AccessToken(API_KEY, API_SECRET, {

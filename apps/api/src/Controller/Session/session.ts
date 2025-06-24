@@ -55,7 +55,7 @@ export const createToken = async (req: Request, res: Response) => {
     const client = await RedisClient();
     // this is on going session for the studio when the user reconnects to the studio he should get the room token(token->sessionId+slugId) so that he can join the session again
     await client.set(`sessionToken-${token}`, JSON.stringify({ slugId, sessionId }));
-    await client.set(`ongoingSession:${slugId}`, JSON.stringify({
+    await client.set(`ongoingSession-${slugId}`, JSON.stringify({
       roomToken: token,
       startedAt: new Date(),
       liveParticipants:[],
@@ -90,7 +90,7 @@ export const getOngoingSession = async (req: Request, res: Response) => {
   try {
     const client = await RedisClient();
     const slugId = req.query.slugId as string;
-    const session = await client.get(`ongoingSession:${slugId}`);
+    const session = await client.get(`ongoingSession-${slugId}`);
     if(!session){
       throw error("session doesn't exist in redis");
       return;
@@ -100,5 +100,64 @@ export const getOngoingSession = async (req: Request, res: Response) => {
   } catch (error) {
     console.error((error as Error).message);
     return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: "Internal server error" });
+  }
+}
+
+export const onLeaveSession = async (req:Request, res:Response) =>{
+  try {
+    const {userId, roomToken} = req.body;
+    const participantsStudioDetails = await prisma.studio.findFirst({where:{ownerId:String(userId)}});
+    if(!participantsStudioDetails){
+      console.log("participants with this user don't exist");
+      return;
+    }
+    const client = await RedisClient();
+    const participateSession = await client.get(`participateSession-${userId}`);
+    if(!participateSession){
+      console.error("participate session dont exist in redis for ", userId);
+      return;
+    }
+    const session = await client.get(`sessionToken-${roomToken}`);
+    if(!session){
+      console.error("session don't exist");
+      return;
+    }
+    const parsedData = await JSON.parse(session);
+    const date = new Date();
+    const parsedSessionData = await JSON.parse(participateSession);
+    const ongoingSession = await client.get(`ongoingSession-${parsedData.slugId}`);
+    if(!ongoingSession){
+      console.log("on going session don't exist");
+      return;
+    }
+    const parsedOngoingSession = JSON.parse(ongoingSession);
+    parsedOngoingSession.wasParticipants.push(userId);
+    parsedOngoingSession.liveParticipants = Array.isArray(parsedOngoingSession.liveParticipants)
+      ? parsedOngoingSession.liveParticipants.filter((id: string | number) => String(id) !== String(userId))
+      : [];
+    await client.set(`ongoingSession-${parsedData.slugId}`, JSON.stringify(parsedOngoingSession));
+    if(parsedData.slugId===participantsStudioDetails.slugId){
+      let totalParticipants = parsedOngoingSession.liveParticipants
+      totalParticipants=[...totalParticipants, parsedOngoingSession.wasParticipants];
+      const startedAt = parsedOngoingSession.startedAt;
+      const sessionId = parsedData.sessionId;
+      await prisma.session.update({where:{id:sessionId}, data:{startedAt:startedAt, endedAt:new Date(), ParticipantSession:totalParticipants}});
+      client.del(`ongoingSession-${parsedData.slugId}`);
+    }
+    else await client.del(`participateSession-${userId}`);
+    await prisma.participantSession.create({
+      data: {
+        sessionId: parsedData.sessionId,
+        userId: String(userId),
+        joinedAt: parsedSessionData.joinedAt ? new Date(parsedSessionData.joinedAt) : undefined,
+        leftAt: date,
+        name: parsedSessionData.name || undefined,
+        session: { connect: { id: parsedData.sessionId } },
+        user: { connect: { id: String(userId) } }
+      }
+    });
+    return res.status(HTTP_STATUS.CREATED).json({ message: "Created Participate Session" });
+  } catch (error) {
+    
   }
 }
