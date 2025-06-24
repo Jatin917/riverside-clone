@@ -3,6 +3,7 @@ import { HTTP_STATUS } from "../../lib/types";
 import crypto from 'crypto';
 import { Request, Response } from "express";
 import { RedisClient } from "../../services/redis";
+import { error } from "console";
 
 export const createSession = async (req: Request, res: Response) => {
   try {
@@ -56,8 +57,11 @@ export const createToken = async (req: Request, res: Response) => {
     await client.set(`sessionToken-${token}`, JSON.stringify({ slugId, sessionId }));
     await client.set(`ongoingSession:${slugId}`, JSON.stringify({
       roomToken: token,
-    }));
-
+      startedAt: new Date(),
+      liveParticipants:[],
+      wasParticipants:[],
+    }), { EX: 7200 }); // ye 2 hours baad apne aap se khtm ho jayega session so either apan jab host nikalega session us time apan db main entry kr denge and if the session is closed by due to time limit fir kya kr skte hain?
+    // host ka participate session redis main instanse nhi bna rhe as kb ongoing session ko kill krenge tb we can make direct entry in db from there only
     return res.status(HTTP_STATUS.OK).json({ token });
   } catch (error) {
     console.error((error as Error).message);
@@ -87,7 +91,12 @@ export const getOngoingSession = async (req: Request, res: Response) => {
     const client = await RedisClient();
     const slugId = req.query.slugId as string;
     const session = await client.get(`ongoingSession:${slugId}`);
-    return res.status(HTTP_STATUS.OK).json({ session });
+    if(!session){
+      throw error("session doesn't exist in redis");
+      return;
+    }
+    const parsedSessionData = await JSON.parse(session as string);
+    return res.status(HTTP_STATUS.OK).json({ roomToken:parsedSessionData.roomToken });
   } catch (error) {
     console.error((error as Error).message);
     return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: "Internal server error" });

@@ -15,6 +15,7 @@ router.post('/session', createSession);
 // @ts-ignore
 router.post('/session-token', createToken);
 // @ts-ignore
+// abhi tak is route ko kisine use nhi kiya hain
 router.get('/session-token', getSessionToken);
 // @ts-ignore
 router.get('/ongoing-session', getOngoingSession);

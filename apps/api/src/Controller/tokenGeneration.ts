@@ -1,6 +1,9 @@
 import { AccessToken } from 'livekit-server-sdk';
 import { API_KEY, API_SECRET, LIVEKIT_URL } from '../server';
 import { Request, Response } from 'express';
+import { RedisClient } from '../services/redis';
+import { error } from 'console';
+import { HTTP_STATUS } from '../lib/types';
 
 interface TokenGenerationRequest {
   token: string;
@@ -11,12 +14,22 @@ interface TokenGenerationRequest {
 export const tokenGeneration = async (req: Request, res: Response) => {
   try {
     const { token: roomToken, metadata, email } = req.body as TokenGenerationRequest;
-
+    
     if (!roomToken || !email) {
       return res.status(400).json({
         error: 'roomToken and email are required'
       });
     }
+    const client = await RedisClient();
+    const alreadyExist = await client.get(`participateSession-${email}`);
+    if(alreadyExist){
+      const parseddata = JSON.parse(alreadyExist);
+      if(parseddata.roomToken!=roomToken){
+        // iska mtlb user dusre room main join hona chah rhaa hain so we will make sure this thing don't happen
+        return res.status(HTTP_STATUS.CONFLICT).json({message:"Already in the room ", roomToken:parseddata.roomToken});
+      }
+    }
+    else await client.set(`participateSession-${email}`, JSON.stringify({joinedAt: new Date(), roomToken:roomToken}), {EX:7200})
 
     // Create access token
     const at = new AccessToken(API_KEY, API_SECRET, {
@@ -35,7 +48,6 @@ export const tokenGeneration = async (req: Request, res: Response) => {
     });
 
     const token = await at.toJwt();
-
     return res.json({
       token,
       wsUrl: LIVEKIT_URL,
