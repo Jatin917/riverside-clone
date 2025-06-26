@@ -16,7 +16,13 @@ const ControlBar = ({previewStream, onLeave }: {previewStream:MediaStream | null
     setIsRecording((prev) => !prev);
   }
   function onToggleAudio() {
-    setAudioEnabled((prev) => !prev);
+    if (!previewStream) return;
+  
+    previewStream.getAudioTracks().forEach(track => {
+      track.enabled = !audioEnabled;
+    });
+  
+    setAudioEnabled(prev => !prev);
   }
   function onToggleVideo() {
     if (!previewStream) return;
