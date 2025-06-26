@@ -193,7 +193,7 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionT
     };
   });
   const handleLeaveRoom = async()=>{
-    console.log("leave room ", room?.localParticipant);
+    console.log("leave room ", sessionToken, email);
     // room.localParticipant.videoTracks.forEach(pub => pub.track?.stop());
     // room.localParticipant.audioTracks.forEach(pub => pub.track?.stop());
     if(!email || !sessionToken){

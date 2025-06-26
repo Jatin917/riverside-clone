@@ -43,7 +43,7 @@ export const createSession = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.error("CreateSession error:", (error as Error).message);
+    console.error("CreateSession error:", (error as Error));
     return res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -64,7 +64,7 @@ export const createToken = async (req: Request, res: Response) => {
     // host ka participate session redis main instanse nhi bna rhe as kb ongoing session ko kill krenge tb we can make direct entry in db from there only
     return res.status(HTTP_STATUS.OK).json({ token });
   } catch (error) {
-    console.error((error as Error).message);
+    console.error((error as Error));
     return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: "Internal server error" });
   }
 };
@@ -80,7 +80,7 @@ export const getSessionToken = async (req: Request, res: Response) => {
     }
     return res.status(HTTP_STATUS.OK).json({ data });
   } catch (error) {
-    console.error((error as Error).message);
+    console.error((error as Error));
     return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: "Internal server error" });
   }
 };
@@ -98,95 +98,136 @@ export const getOngoingSession = async (req: Request, res: Response) => {
     const parsedSessionData = await JSON.parse(session as string);
     return res.status(HTTP_STATUS.OK).json({ roomToken:parsedSessionData.roomToken });
   } catch (error) {
-    console.error((error as Error).message);
+    console.error((error as Error));
     return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: "Internal server error" });
   }
 }
 
-export const onLeaveSession = async (req:Request, res:Response) =>{
+export const onLeaveSession = async (req: Request, res: Response) => {
   try {
-    const {email, roomToken} = req.body;
-    const user = await prisma.user.findFirst({where:{email}});
-    if(!user){
-      console.log("No user found with this email ");
-      return;
+    const { email, sessionToken:roomToken } = req.body;
+
+    const user = await prisma.user.findFirst({ where: { email } });
+    if (!user) {
+      console.log("No user found with this email");
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "User not found" });
     }
+
     const userId = user.id;
-    const participantsStudioDetails = await prisma.studio.findFirst({where:{ownerId:String(userId)}});
+    const participantsStudioDetails = await prisma.studio.findFirst({ where: { ownerId: String(userId) } });
+
     const client = await RedisClient();
     const participateSession = await client.get(`participateSession-${userId}`);
-    if(!participateSession){
-      console.error("participate session dont exist in redis for ", userId);
-      return res.status(HTTP_STATUS.NOT_FOUND).json({message:"NO Participate Session found for this participant"});
+    if (!participateSession) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "No Participate Session found for this participant" });
     }
     const session = await client.get(`sessionToken-${roomToken}`);
-    console.log("session do exist ", session);
-    if(!session){
-      console.error("session don't exist");
-      return res.status(HTTP_STATUS.NOT_FOUND).json({message:"NO Session found for this participant"});
+    if (!session) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "No Session found for this participant" });
     }
-    const parsedData = await JSON.parse(session);
+
+    const parsedData = JSON.parse(session);
+    const parsedSessionData = JSON.parse(participateSession);
     const date = new Date();
-    const parsedSessionData = await JSON.parse(participateSession);
+
     const ongoingSession = await client.get(`ongoingSession-${parsedData.slugId}`);
-    if(!ongoingSession){
-      console.log("on going session don't exist");
-      return res.status(HTTP_STATUS.NOT_FOUND).json({message:"NO Ongoing found for this participant"});
+    if (!ongoingSession) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "No Ongoing Session found for this participant" });
     }
+
     const parsedOngoingSession = JSON.parse(ongoingSession);
-    parsedOngoingSession.wasParticipants.push(userId);
+
+    // Update liveParticipants and wasParticipants
+    parsedOngoingSession.wasParticipants = parsedOngoingSession.wasParticipants || [];
     parsedOngoingSession.liveParticipants = Array.isArray(parsedOngoingSession.liveParticipants)
       ? parsedOngoingSession.liveParticipants.filter((id: string | number) => String(id) !== String(userId))
       : [];
+
+    if (!parsedOngoingSession.wasParticipants.includes(userId)) {
+      parsedOngoingSession.wasParticipants.push(userId);
+    }
+
+    // Save updated ongoing session
     await client.set(`ongoingSession-${parsedData.slugId}`, JSON.stringify(parsedOngoingSession));
-    if(!participantsStudioDetails || parsedData.slugId===participantsStudioDetails.slugId){
-      let totalParticipants = parsedOngoingSession.liveParticipants
-      totalParticipants=[...totalParticipants, parsedOngoingSession.wasParticipants];
-      const startedAt = parsedOngoingSession.startedAt;
+    if(!participantsStudioDetails) {
+      await client.del(`participateSession-${userId}`);
+    }
+    else if (parsedData.slugId === participantsStudioDetails.slugId) {
+      const allParticipants = [
+        ...(parsedOngoingSession.liveParticipants || []),
+        ...(parsedOngoingSession.wasParticipants || [])
+      ];
+
       const sessionId = parsedData.sessionId;
-      const response = await Promise.all(
-        totalParticipants.map(async (userId) => {
-          const exist = await prisma.participantSession.findFirst({
-            where: { userId, sessionId }
+      const startedAt = parsedOngoingSession.startedAt ? new Date(parsedOngoingSession.startedAt) : undefined;
+      const name = parsedOngoingSession.name || "unknown"
+      // Upsert participant sessions
+      await Promise.all(
+        allParticipants.map(async (userId) => {
+          const existing = await prisma.participantSession.findFirst({
+            where: { userId: String(userId), sessionId }
           });
-      
-          if (exist) {
+
+          if (existing) {
             await prisma.participantSession.update({
-              where: { id: exist.id }, // Use the unique ID
+              where: { id: existing.id },
               data: { leftAt: new Date() }
             });
           } else {
             await prisma.participantSession.create({
               data: {
-                userId,
+                userId: String(userId),
                 sessionId,
                 joinedAt: startedAt,
                 leftAt: new Date(),
+                name
               }
             });
           }
         })
-      );      
-      await prisma.session.update({where:{id:sessionId}, data:{startedAt:startedAt, endedAt:new Date(), ParticipantSession:totalParticipants}});
-      client.del(`ongoingSession-${parsedData.slugId}`);
+      );
+
+      // Update session metadata
+      await prisma.session.update({
+        where: { id: sessionId },
+        data: {
+          startedAt,
+          endedAt: new Date()
+        }
+      });
+
+      await client.del(`ongoingSession-${parsedData.slugId}`);
+      await client.del(`sessionToken-${roomToken}`);
     }
-    else await client.del(`participateSession-${userId}`);
-    await prisma.participantSession.create({
-      data: {
-        sessionId: parsedData.sessionId,
+
+    // Ensure a participant session record exists (idempotent backup)
+    const exist = await prisma.participantSession.findFirst({
+      where: {
         userId: String(userId),
-        joinedAt: parsedSessionData.joinedAt ? new Date(parsedSessionData.joinedAt) : undefined,
-        leftAt: date,
-        name: parsedSessionData.name || undefined,
-        session: { connect: { id: parsedData.sessionId } },
-        user: { connect: { id: String(userId) } }
+        sessionId: parsedData.sessionId
       }
     });
-    return res.status(HTTP_STATUS.CREATED).json({ message: "Created Participate Session" });
+
+    if (!exist) {
+      await prisma.participantSession.create({
+        data: {
+          sessionId: parsedData.sessionId,
+          userId: String(userId),
+          joinedAt: parsedSessionData.joinedAt ? new Date(parsedSessionData.joinedAt) : undefined,
+          leftAt: date,
+          name: parsedSessionData.name || 'Unknown',
+        }
+      });
+    }
+
+    return res.status(HTTP_STATUS.CREATED).json({ message: "Successfully left the session" });
+
   } catch (error) {
+    console.error("Error in onLeaveSession:", error);
     return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: "Internal server error" });
   }
-}
+};
+
 
 export const addToLiveParticipants = async (req: Request, res: Response) => {
   try {
@@ -199,6 +240,12 @@ export const addToLiveParticipants = async (req: Request, res: Response) => {
     }
 
     const userId = user.id;
+    const participantsStudioDetails = await prisma.user.findFirst({where:{id:userId}, include:{Studio:{select:{slugId:true}}}})
+    let userSlugId: string|null = null;
+    if(participantsStudioDetails && participantsStudioDetails.Studio?.slugId){
+      userSlugId = participantsStudioDetails.Studio.slugId;
+    }
+
     const client = await RedisClient();
 
     const sessionDetail = await client.get(`sessionToken-${roomToken}`);
@@ -207,17 +254,17 @@ export const addToLiveParticipants = async (req: Request, res: Response) => {
     }
 
     const parsedSessionDetails = JSON.parse(sessionDetail);
-    const slugId = parsedSessionDetails.slugId;
+    const slugIdOfHost = parsedSessionDetails.slugId;
 
-    const ongoingSession = await client.get(`ongoingSession-${slugId}`);
+    const ongoingSession = await client.get(`ongoingSession-${slugIdOfHost}`);
     if (!ongoingSession) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "No Ongoing Session Exist" });
     }
 
     const parsedOngoingSession = JSON.parse(ongoingSession);
 
-    parsedOngoingSession.liveParticipants.push(userId);  // assuming the key is liveParticipants
-    await client.set(`ongoingSession-${slugId}`, JSON.stringify(parsedOngoingSession));
+    if(userSlugId!==slugIdOfHost && !parsedOngoingSession.liveParticipants.includes(userId)) parsedOngoingSession.liveParticipants.push(userId);  // assuming the key is liveParticipants
+    await client.set(`ongoingSession-${slugIdOfHost}`, JSON.stringify(parsedOngoingSession));
 
     return res.status(HTTP_STATUS.CREATED).json({ message: "Added Live Participants" });
   } catch (error) {
