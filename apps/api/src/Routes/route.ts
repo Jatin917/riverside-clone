@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { tokenGeneration } from "../Controller/tokenGeneration";
 import { getStudio } from '../Controller/Studio/studio';
-import { createSession, createToken, getSessionToken, getOngoingSession, onLeaveSession } from '../Controller/Session/session';
+import { createSession, createToken, getSessionToken, getOngoingSession, onLeaveSession, addToLiveParticipants } from '../Controller/Session/session';
 
 const router = Router();
 
@@ -21,5 +21,7 @@ router.get('/session-token', getSessionToken);
 router.get('/ongoing-session', getOngoingSession);
 // @ts-ignore
 router.post('/leave-session', onLeaveSession);
+// @ts-ignore
+router.post('/add-to-liveParticipant', addToLiveParticipants);
 
 export default router;

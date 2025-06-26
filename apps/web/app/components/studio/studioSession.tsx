@@ -10,7 +10,7 @@ import InviteModal from './InviteModal'
 import { Room, RoomEvent, ConnectionState, RemoteParticipant, RemoteTrack, TrackPublication } from 'livekit-client'
 import { Users, MessageCircle, Settings, FileText, Music, Grid3X3 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { leaveRoomApi } from '@lib/studio'
+import { leaveRoomApi, inLiveParticipants } from '@lib/studio'
 
 // Types
 interface Participant {
@@ -80,7 +80,7 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionT
       try {
         console.log(wsUrl, livekitToken);
         console.log('🔄 Starting room connection...', wsUrl, livekitToken);
-        if (!wsUrl || !livekitToken) throw new Error('Missing wsUrl or livekitToken');
+        if (!wsUrl || !livekitToken || !email || !sessionToken) throw new Error('Missing wsUrl or livekitToken or email or sessionToken');
 
         newRoom = new Room({ adaptiveStream: true, dynacast: true });
         if (!isMounted) return;
@@ -131,6 +131,8 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionT
         });
 
         await newRoom.connect(wsUrl, livekitToken);
+        // new user joinee ko live participants main entry de rhe hain
+        await inLiveParticipants(email, sessionToken);
         if (!isMounted) {
           newRoom.disconnect();
           return;

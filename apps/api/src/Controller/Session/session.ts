@@ -113,20 +113,17 @@ export const onLeaveSession = async (req:Request, res:Response) =>{
     }
     const userId = user.id;
     const participantsStudioDetails = await prisma.studio.findFirst({where:{ownerId:String(userId)}});
-    if(!participantsStudioDetails){
-      console.log("participants with this user don't exist");
-      return;
-    }
     const client = await RedisClient();
     const participateSession = await client.get(`participateSession-${userId}`);
     if(!participateSession){
       console.error("participate session dont exist in redis for ", userId);
-      return;
+      return res.status(HTTP_STATUS.NOT_FOUND).json({message:"NO Participate Session found for this participant"});
     }
     const session = await client.get(`sessionToken-${roomToken}`);
+    console.log("session do exist ", session);
     if(!session){
       console.error("session don't exist");
-      return;
+      return res.status(HTTP_STATUS.NOT_FOUND).json({message:"NO Session found for this participant"});
     }
     const parsedData = await JSON.parse(session);
     const date = new Date();
@@ -134,7 +131,7 @@ export const onLeaveSession = async (req:Request, res:Response) =>{
     const ongoingSession = await client.get(`ongoingSession-${parsedData.slugId}`);
     if(!ongoingSession){
       console.log("on going session don't exist");
-      return;
+      return res.status(HTTP_STATUS.NOT_FOUND).json({message:"NO Ongoing found for this participant"});
     }
     const parsedOngoingSession = JSON.parse(ongoingSession);
     parsedOngoingSession.wasParticipants.push(userId);
@@ -142,7 +139,7 @@ export const onLeaveSession = async (req:Request, res:Response) =>{
       ? parsedOngoingSession.liveParticipants.filter((id: string | number) => String(id) !== String(userId))
       : [];
     await client.set(`ongoingSession-${parsedData.slugId}`, JSON.stringify(parsedOngoingSession));
-    if(parsedData.slugId===participantsStudioDetails.slugId){
+    if(!participantsStudioDetails || parsedData.slugId===participantsStudioDetails.slugId){
       let totalParticipants = parsedOngoingSession.liveParticipants
       totalParticipants=[...totalParticipants, parsedOngoingSession.wasParticipants];
       const startedAt = parsedOngoingSession.startedAt;
@@ -187,6 +184,44 @@ export const onLeaveSession = async (req:Request, res:Response) =>{
     });
     return res.status(HTTP_STATUS.CREATED).json({ message: "Created Participate Session" });
   } catch (error) {
-    
+    return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: "Internal server error" });
+  }
+}
+
+export const addToLiveParticipants = async (req: Request, res: Response) => {
+  try {
+    const { email, roomToken } = req.body;
+    const user = await prisma.user.findFirst({ where: { email } });
+
+    if (!user) {
+      console.log("User doesn't exist with this email");
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "User not found" });
+    }
+
+    const userId = user.id;
+    const client = await RedisClient();
+
+    const sessionDetail = await client.get(`sessionToken-${roomToken}`);
+    if (!sessionDetail) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "No Session Exist" });
+    }
+
+    const parsedSessionDetails = JSON.parse(sessionDetail);
+    const slugId = parsedSessionDetails.slugId;
+
+    const ongoingSession = await client.get(`ongoingSession-${slugId}`);
+    if (!ongoingSession) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "No Ongoing Session Exist" });
+    }
+
+    const parsedOngoingSession = JSON.parse(ongoingSession);
+
+    parsedOngoingSession.liveParticipants.push(userId);  // assuming the key is liveParticipants
+    await client.set(`ongoingSession-${slugId}`, JSON.stringify(parsedOngoingSession));
+
+    return res.status(HTTP_STATUS.CREATED).json({ message: "Added Live Participants" });
+  } catch (error) {
+    console.error("Error in addToLiveParticipants:", error);
+    return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: "Internal server error" });
   }
 }
