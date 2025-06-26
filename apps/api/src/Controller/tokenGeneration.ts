@@ -21,13 +21,21 @@ export const tokenGeneration = async (req: Request, res: Response) => {
         error: 'roomToken and email are required'
       });
     }
-    const user = await prisma.user.findFirst({where:{email}});
+    const user = await prisma.user.findFirst({where:{email}, include:{Studio:{select:{slugId:true}}}});
     if(!user){
       return res.status(HTTP_STATUS.NOT_FOUND).json({message:"No user found with this email"});
     }
     const userId = user?.id;
+    const slugIdOfHost = user.Studio?.slugId;
     const client = await RedisClient();
     const alreadyExist = await client.get(`participateSession-${userId}`);
+    const session = await client.get(`sessionToken-${roomToken}`);
+    if(!session) {
+      console.log("session don't exist for this room token");
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({message:"No Session exist"});
+    }
+    const parsedSession = await JSON.parse(session);
+    const slugIdOfUser = parsedSession.slugId;
     if(alreadyExist){
       const parseddata = JSON.parse(alreadyExist);
       if(parseddata.roomToken!=roomToken){
@@ -35,7 +43,7 @@ export const tokenGeneration = async (req: Request, res: Response) => {
         return res.status(HTTP_STATUS.CONFLICT).json({message:"Already in the room ", roomToken:parseddata.roomToken});
       }
     }
-    else await client.set(`participateSession-${userId}`, JSON.stringify({joinedAt: new Date(), roomToken:roomToken}), {EX:7200})
+    else if(slugIdOfHost!==slugIdOfUser) await client.set(`participateSession-${userId}`, JSON.stringify({joinedAt: new Date(), roomToken:roomToken}), {EX:7200})
 
     // Create access token
     const at = new AccessToken(API_KEY, API_SECRET, {

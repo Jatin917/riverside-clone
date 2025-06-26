@@ -105,7 +105,13 @@ export const getOngoingSession = async (req: Request, res: Response) => {
 
 export const onLeaveSession = async (req:Request, res:Response) =>{
   try {
-    const {userId, roomToken} = req.body;
+    const {email, roomToken} = req.body;
+    const user = await prisma.user.findFirst({where:{email}});
+    if(!user){
+      console.log("No user found with this email ");
+      return;
+    }
+    const userId = user.id;
     const participantsStudioDetails = await prisma.studio.findFirst({where:{ownerId:String(userId)}});
     if(!participantsStudioDetails){
       console.log("participants with this user don't exist");
@@ -141,6 +147,29 @@ export const onLeaveSession = async (req:Request, res:Response) =>{
       totalParticipants=[...totalParticipants, parsedOngoingSession.wasParticipants];
       const startedAt = parsedOngoingSession.startedAt;
       const sessionId = parsedData.sessionId;
+      const response = await Promise.all(
+        totalParticipants.map(async (userId) => {
+          const exist = await prisma.participantSession.findFirst({
+            where: { userId, sessionId }
+          });
+      
+          if (exist) {
+            await prisma.participantSession.update({
+              where: { id: exist.id }, // Use the unique ID
+              data: { leftAt: new Date() }
+            });
+          } else {
+            await prisma.participantSession.create({
+              data: {
+                userId,
+                sessionId,
+                joinedAt: startedAt,
+                leftAt: new Date(),
+              }
+            });
+          }
+        })
+      );      
       await prisma.session.update({where:{id:sessionId}, data:{startedAt:startedAt, endedAt:new Date(), ParticipantSession:totalParticipants}});
       client.del(`ongoingSession-${parsedData.slugId}`);
     }

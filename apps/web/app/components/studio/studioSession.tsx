@@ -10,6 +10,7 @@ import InviteModal from './InviteModal'
 import { Room, RoomEvent, ConnectionState, RemoteParticipant, RemoteTrack, TrackPublication } from 'livekit-client'
 import { Users, MessageCircle, Settings, FileText, Music, Grid3X3 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { leaveRoomApi } from '@lib/studio'
 
 // Types
 interface Participant {
@@ -21,7 +22,7 @@ interface Participant {
   quality: string
 }
 // Main Studio Component
-const StudioSession = ({previewStream, wsUrl, livekitToken, link, host}:{previewStream:MediaStream | null, wsUrl:string, livekitToken:string, link:string | null, host:boolean}) => {
+const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionToken, email}:{previewStream:MediaStream | null, wsUrl:string, livekitToken:string, link:string | null, host:boolean, sessionToken:string | null, email:string | null}) => {
   const [room, setRoom] = useState<Room | null>(null);
   const [isReadyToConnect, setIsReadyToConnect] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
@@ -193,6 +194,11 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host}:{preview
     console.log("leave room ", room?.localParticipant);
     // room.localParticipant.videoTracks.forEach(pub => pub.track?.stop());
     // room.localParticipant.audioTracks.forEach(pub => pub.track?.stop());
+    if(!email || !sessionToken){
+      console.log("session token or email or not there ", sessionToken, email);
+      return;
+    }
+    await leaveRoomApi(email, sessionToken)
     await room?.disconnect();
     router.push('/');
     // yha prr check krna hain that ki unko kahi route krna ho agar koi feed back form lena ho and all

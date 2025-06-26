@@ -123,6 +123,8 @@ export default function StudioPage() {
           livekitToken={livekitToken}
           link={link}
           host={host}
+          sessionToken={sessionToken}
+          email={email}
         />
       )}
     </>
