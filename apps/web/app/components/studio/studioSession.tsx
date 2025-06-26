@@ -9,6 +9,8 @@ import InvitePanel from './InvitePanel'
 import InviteModal from './InviteModal'
 import { Room, RoomEvent, ConnectionState, RemoteParticipant, RemoteTrack, TrackPublication } from 'livekit-client'
 import { Users, MessageCircle, Settings, FileText, Music, Grid3X3 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { leaveRoomApi, inLiveParticipants } from '@lib/studio'
 
 // Types
 interface Participant {
@@ -20,7 +22,7 @@ interface Participant {
   quality: string
 }
 // Main Studio Component
-const StudioSession = ({previewStream, wsUrl, livekitToken, link, host}:{previewStream:MediaStream | null, wsUrl:string, livekitToken:string, link:string | null, host:boolean}) => {
+const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionToken, email}:{previewStream:MediaStream | null, wsUrl:string, livekitToken:string, link:string | null, host:boolean, sessionToken:string | null, email:string | null}) => {
   const [room, setRoom] = useState<Room | null>(null);
   const [isReadyToConnect, setIsReadyToConnect] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
@@ -31,6 +33,7 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host}:{preview
   const [isInvitePanelOpen, setIsInvitePanelOpen] = useState(host);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const router=useRouter();
 
   const handleLeave = () => {
     console.log("handleLeave");
@@ -77,7 +80,7 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host}:{preview
       try {
         console.log(wsUrl, livekitToken);
         console.log('🔄 Starting room connection...', wsUrl, livekitToken);
-        if (!wsUrl || !livekitToken) throw new Error('Missing wsUrl or livekitToken');
+        if (!wsUrl || !livekitToken || !email || !sessionToken) throw new Error('Missing wsUrl or livekitToken or email or sessionToken');
 
         newRoom = new Room({ adaptiveStream: true, dynacast: true });
         if (!isMounted) return;
@@ -128,10 +131,12 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host}:{preview
         });
 
         await newRoom.connect(wsUrl, livekitToken);
-        // if (!isMounted) {
-        //   newRoom.disconnect();
-        //   return;
-        // }
+        // new user joinee ko live participants main entry de rhe hain
+        await inLiveParticipants(email, sessionToken);
+        if (!isMounted) {
+          newRoom.disconnect();
+          return;
+        }
 
         const existingParticipants = Array.from(newRoom.remoteParticipants.values());
         setParticipants(existingParticipants);
@@ -187,7 +192,19 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host}:{preview
       stream,
     };
   });
-
+  const handleLeaveRoom = async()=>{
+    console.log("leave room ", sessionToken, email);
+    // room.localParticipant.videoTracks.forEach(pub => pub.track?.stop());
+    // room.localParticipant.audioTracks.forEach(pub => pub.track?.stop());
+    if(!email || !sessionToken){
+      console.log("session token or email or not there ", sessionToken, email);
+      return;
+    }
+    await leaveRoomApi(email, sessionToken)
+    await room?.disconnect();
+    router.push('/');
+    // yha prr check krna hain that ki unko kahi route krna ho agar koi feed back form lena ho and all
+  }
   return (
     <div className="h-screen bg-[#0d0d0d] flex items-stretch p-4">
       {/* Main Content Container (shrinks when sidebar is open) */}
@@ -203,13 +220,14 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host}:{preview
           {/* </div> */}
         {/* </div> */}
         <ControlBar
+          previewStream={previewStream}
           isRecording={false}
           onToggleRecording={() => void(!false)}
           audioEnabled={false}
           onToggleAudio={() => void(!false)}
           videoEnabled={false}
           onToggleVideo={() => void(!false)}
-          onLeave={() => console.log('Leave')}
+          onLeave={handleLeaveRoom}
         />
       </div>
 

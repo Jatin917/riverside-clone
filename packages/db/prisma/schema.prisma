@@ -54,7 +54,7 @@ model ParticipantSession {
   id             String   @id @default(uuid())
   sessionId      String
   userId         String
-  name           String
+  name           String   @default("Unknown")
   joinedAt       DateTime @default(now())
   leftAt         DateTime
 

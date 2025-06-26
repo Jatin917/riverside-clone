@@ -50,11 +50,10 @@ export default function StudioPage() {
     ) return;
     const fetchOnGoingSession = async () => {
       const data = await fetchOngoingSession(slugId as string);
-      if (data.session) {
-        const parsedData = JSON.parse(data.session);
-        const link = new URL(`${window.location.origin}/studio/${slugId}?t=${parsedData.roomToken}`);
+      if (data.roomToken) {
+        const link = new URL(`${window.location.origin}/studio/${slugId}?t=${data.roomToken}`);
         const email = session.data?.user?.email as string;
-        await fetchToken(email, parsedData.roomToken);
+        await fetchToken(email, data.roomToken);
         setLink(link.toString());
         setHost(true);
     };
@@ -124,6 +123,8 @@ export default function StudioPage() {
           livekitToken={livekitToken}
           link={link}
           host={host}
+          sessionToken={sessionToken}
+          email={email}
         />
       )}
     </>

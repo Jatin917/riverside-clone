@@ -105,3 +105,27 @@ export const fetchOngoingSession = async (slugId: string) => {
     throw error;
   }
 }
+
+export const leaveRoomApi = async (email:string, sessionToken:string)=>{
+  try {
+    const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/leave-session`, {email, sessionToken});
+    if(!response){
+      return null;
+    }
+    return response.data;
+  } catch (error) {
+    console.log("error in leaving room in client side ", (error as Error).message);
+    return;
+  }
+}
+
+export const inLiveParticipants = async (email:string, roomToken:string) =>{
+  try {
+    const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/add-to-liveParticipant`, {email, roomToken});
+    if(!response) return null;
+    return response.data;
+  } catch (error) {
+    console.log("error in leaving room in client side ", (error as Error).message);
+    return;
+  }
+}
