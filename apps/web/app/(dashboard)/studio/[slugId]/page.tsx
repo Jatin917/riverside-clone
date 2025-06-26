@@ -9,6 +9,7 @@ import CameraSetup from '@component/studio/studio';
 import StudioSession from '@component/studio/studioSession';
 import { createSessionAndToken, fetchLivekitToken, fetchOngoingSession } from '@lib/studio';
 import { createLocalAudioTrack, createLocalVideoTrack } from 'livekit-client';
+import { toast } from 'react-toastify';
 
 export default function StudioPage() {
   const router = useRouter();
@@ -42,7 +43,7 @@ export default function StudioPage() {
   }, [session.status]);
 
   
-  // jis bnde pr token url main hain wo bnda ongoing session nikal lega wahi se 
+  // jis bnde pr token url main token hain wo bnda ongoing session nikal lega wahi se 
   useEffect(() => {
     if (
       session.status !== 'authenticated' || // 🚫 skip if not ready
@@ -74,7 +75,8 @@ export default function StudioPage() {
   // ✅ Fetch LiveKit token from your backend
   const fetchToken = async (email: string, token: string) => {
     try {
-      const {livekitToken, wsUrl} = await fetchLivekitToken(email, token);
+      const response = await fetchLivekitToken(email, token);
+      const {livekitToken, wsUrl} = response;
       console.log("livekitToken in page is ", livekitToken, wsUrl);
       setLivekitToken(livekitToken);
       setWsUrl(wsUrl);

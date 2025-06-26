@@ -2,6 +2,7 @@
 import { prisma } from "@repo/db";
 import axios from "axios";
 import { nanoid } from "nanoid";
+import { toast } from "react-toastify";
 
 export async function getOrCreateStudioByEmail(email: string) {
   const user = await prisma.user.findFirst({ where: { email } });
@@ -58,10 +59,13 @@ export const fetchLivekitToken = async (email: string, token: string) => {
       body: JSON.stringify({
         email,
         token,
-        isStreamer: 'true',
+        isStreamer: true,
       }),
     });
-
+    if(response.status===409){
+        toast.warn("Already in another room!!!");
+        return null;
+    }
     if (!response.ok) throw new Error('Failed to get access token');
 
     const data = await response.json();
