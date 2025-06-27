@@ -1,84 +1,60 @@
-# Turborepo starter
+# 🎙️ Riverside.fm Clone
 
-This Turborepo starter is maintained by the Turborepo core team.
+A full-stack clone of [Riverside.fm](https://riverside.fm) built to showcase my developer skills in real-time media streaming, session management, and scalable service architecture using Docker Compose.
 
-## Using this example
+> 🚧 **Note**: Deployment is in progress. The app will be deployed via Docker Compose, and the live link will be added here once it's ready.
 
-Run the following command:
+---
 
-```sh
-npx create-turbo@latest
-```
+## 🧠 Project Purpose
 
-## What's inside?
+This clone project is designed to demonstrate my ability to build a complex, real-world application with multiple moving parts. It reflects my skills in full-stack development, WebRTC, Docker, and modular architecture — mimicking platforms like Riverside.fm.
 
-This Turborepo includes the following packages/apps:
+---
 
-### Apps and Packages
+## ✅ Features (Implemented So Far)
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+- 🎥 Create a studio (host a session)
+- 🔗 Generate a link to invite others
+- 🔒 Join a studio using an invite link
+- 👋 Leave session gracefully
+- 🧠 Backend logic with Livekit for real-time media
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+---
 
-### Utilities
+## 🧰 Tech Stack
 
-This Turborepo has some additional tools already setup for you:
+**Frontend**
+- Next.js (App Router)
+- Tailwind CSS
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+**Backend**
+- Node.js (Express or custom setup)
+- Prisma ORM
 
-### Build
+**Infra & Tools**
+- PostgreSQL (via Docker)
+- Redis (for session handling)
+- Docker & Docker Compose
+- LiveKit setup (for real-time media)
 
-To build all apps and packages, run the following command:
+---
 
-```
-cd my-turborepo
-pnpm build
-```
+## 🐳 Dockerized Setup
 
-### Develop
+This project is built with Docker Compose support. No need to modify the Dockerfiles inside `apps/web` and `apps/api`.
 
-To develop all apps and packages, run the following command:
+### 🔐 Environment Variables
 
-```
-cd my-turborepo
-pnpm dev
-```
+You’ll find the following example env files in the root of the project:
 
-### Remote Caching
+- `.env.db.eg` → DB credentials
+- `.env.api.eg` → API environment config
+- `.env.web.eg` → Web/Frontend config
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+To get started, copy and rename them:
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-npx turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-npx turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+```bash
+cp .env.db.eg .env.db
+cp .env.api.eg .env.api
+cp .env.web.eg .env.web
