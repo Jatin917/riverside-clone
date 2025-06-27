@@ -1,6 +1,6 @@
 import { prisma } from "@repo/db";
 import { nanoid } from 'nanoid';
-import { HTTP_STATUS } from "../../lib/types";
+import { HTTP_STATUS } from "../../lib/types.js";
 import { Request, Response } from "express";
 
 export const getStudio = async (req: Request, res: Response) => {

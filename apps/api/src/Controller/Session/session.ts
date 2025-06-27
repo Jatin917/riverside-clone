@@ -1,8 +1,8 @@
 import { prisma } from "@repo/db";
-import { HTTP_STATUS } from "../../lib/types";
+import { HTTP_STATUS } from "../../lib/types.js";
 import crypto from 'crypto';
 import { Request, Response } from "express";
-import { RedisClient } from "../../services/redis";
+import { RedisClient } from "../../services/redis.js";
 import { error } from "console";
 
 export const createSession = async (req: Request, res: Response) => {

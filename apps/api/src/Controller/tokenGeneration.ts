@@ -1,10 +1,10 @@
 import { AccessToken } from 'livekit-server-sdk';
-import { API_KEY, API_SECRET, LIVEKIT_URL } from '../server';
+import { API_KEY, API_SECRET, LIVEKIT_URL } from '../server.js';
 import { Request, Response } from 'express';
-import { RedisClient } from '../services/redis';
+import { RedisClient } from '../services/redis.js';
 import { error } from 'console';
-import { HTTP_STATUS } from '../lib/types';
-import { prisma } from '@repo/db';
+import { HTTP_STATUS } from '../lib/types.js';
+import {prisma} from '@repo/db';
 
 interface TokenGenerationRequest {
   token: string;

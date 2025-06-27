@@ -5,9 +5,8 @@ import helmet from 'helmet';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
-import { socketHandler } from './wss-server';
-import router  from './Routes/route';
-
+import { socketHandler } from './wss-server.js';
+import router from './Routes/route.js';
 
 dotenv.config();
 

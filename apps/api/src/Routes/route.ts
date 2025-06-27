@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { tokenGeneration } from "../Controller/tokenGeneration";
-import { getStudio } from '../Controller/Studio/studio';
-import { createSession, createToken, getSessionToken, getOngoingSession, onLeaveSession, addToLiveParticipants } from '../Controller/Session/session';
+import { tokenGeneration } from "../Controller/tokenGeneration.js";
+import { getStudio } from '../Controller/Studio/studio.js';
+import { createSession, createToken, getSessionToken, getOngoingSession, onLeaveSession, addToLiveParticipants } from '../Controller/Session/session.js';
 
 const router = Router();
 

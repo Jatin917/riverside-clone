@@ -1,1 +1,1 @@
-{"root":["./src/index.ts","./src/singnaling.ts"],"version":"5.8.2"}
+{"root":["./generated/prisma/client.d.ts","./generated/prisma/default.d.ts","./generated/prisma/edge.d.ts","./generated/prisma/index.d.ts","./generated/prisma/wasm.d.ts","./generated/prisma/runtime/index-browser.d.ts","./generated/prisma/runtime/library.d.ts","./src/server.ts","./src/wss-server.ts","./src/controller/tokengeneration.ts","./src/controller/session/session.ts","./src/controller/studio/studio.ts","./src/routes/route.ts","./src/lib/types.ts","./src/services/redis.ts"],"version":"5.8.3"}

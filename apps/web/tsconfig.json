@@ -7,10 +7,15 @@
       }
     ],
     "baseUrl": ".",
-     "paths": {
-       "@component/*": ["./app/components/*"],
-       "@lib/*":["./app/libs/*"]
-     },
+    "paths": {
+      "@component/*": [
+        "./app/components/*"
+      ],
+      "@lib/*": [
+        "./app/libs/*"
+      ]
+    },
+    "resolveJsonModule": true
   },
   "include": [
     "**/*.ts",

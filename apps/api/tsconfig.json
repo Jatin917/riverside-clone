@@ -5,7 +5,12 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "module": "NodeNext",
+    "moduleResolution":"NodeNext",
+    "target": "ES2020",
+    "rootDir":"./src",
+    "outDir":"./dist"
   },
   "include": [
     "**/*.ts",
@@ -13,8 +18,9 @@
     "next-env.d.ts",
     "next.config.js",
     ".next/types/**/*.ts"
-, "../web/app/components/studio/StudioHeader.tsx"  ],
+  ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "dist"
   ]
 }

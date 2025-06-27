@@ -2,9 +2,10 @@
   "name": "api",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "npx tsc -b",
+    "build": "npx tsc -b --noEmit false",
     "start": "node dist/server.js",
     "start:dev": "ts-node src/server.ts",
     "dev": "nodemon",
