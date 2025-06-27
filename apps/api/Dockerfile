@@ -30,7 +30,8 @@ COPY . .
 
 # Generate Prisma client first
 RUN corepack enable && corepack prepare yarn@3.6.1 --activate
-RUN yarn workspace @repo/db db:generate 
+RUN yarn workspace @repo/db db:generate
+# RUN yarn workspace @repo/db db:migrate 
 
 # Then build the API
 RUN yarn workspace api build
@@ -49,11 +50,21 @@ COPY --from=builder --chown=apiuser:nodejs /app/apps/api/dist ./apps/api/dist
 COPY --from=builder --chown=apiuser:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=apiuser:nodejs /app/packages ./packages
 COPY --from=builder --chown=apiuser:nodejs /app/apps/api/package.json ./apps/api/
+COPY --from=builder --chown=apiuser:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=apiuser:nodejs /app/yarn.lock ./yarn.lock
+COPY --from=builder --chown=apiuser:nodejs /app/.yarnrc.yml ./.yarnrc.yml
+COPY --from=builder --chown=apiuser:nodejs /app/.yarn ./.yarn
+COPY --from=builder --chown=apiuser:nodejs /app/packages ./packages
+COPY --from=builder --chown=apiuser:nodejs /app/turbo.json ./turbo.json
+RUN corepack enable && corepack prepare yarn@3.6.1 --activate
+
 
 USER apiuser
+
 
 EXPOSE 3001
 
 ENV PORT 3001
 
-CMD ["node", "apps/api/dist/index.js"]
+COPY apps/api/entrypoint.sh ./apps/api/entrypoint.sh
+CMD ["sh", "./apps/api/entrypoint.sh"]

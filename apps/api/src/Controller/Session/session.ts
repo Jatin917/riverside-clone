@@ -263,7 +263,12 @@ export const addToLiveParticipants = async (req: Request, res: Response) => {
 
     const parsedOngoingSession = JSON.parse(ongoingSession);
 
-    if(userSlugId!==slugIdOfHost && !parsedOngoingSession.liveParticipants.includes(userId)) parsedOngoingSession.liveParticipants.push(userId);  // assuming the key is liveParticipants
+    if(userSlugId!==slugIdOfHost && !parsedOngoingSession.liveParticipants.includes(userId)){
+        parsedOngoingSession.wasParticipants = parsedOngoingSession.wasParticipants.filter(
+          (id: string) => id !== userId
+        );
+      parsedOngoingSession.liveParticipants.push(userId);  // assuming the key is liveParticipants
+    } 
     await client.set(`ongoingSession-${slugIdOfHost}`, JSON.stringify(parsedOngoingSession));
 
     return res.status(HTTP_STATUS.CREATED).json({ message: "Added Live Participants" });

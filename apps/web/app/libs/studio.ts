@@ -1,3 +1,5 @@
+"use server"
+
 // lib/studio.ts
 import { prisma } from "@repo/db";
 import axios from "axios";

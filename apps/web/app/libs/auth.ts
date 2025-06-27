@@ -1,3 +1,5 @@
+// "use server"
+
 import {prisma} from "@repo/db";
 import GoogleProvider from "next-auth/providers/google";
 
