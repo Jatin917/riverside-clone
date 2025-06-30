@@ -1,20 +1,11 @@
-"use client";
-import { signIn, signOut, useSession } from "next-auth/react";
+import Header from "@component/Home/Header";
+import Hero from "@component/Home/Hero";
 
 export default function Home() {
-  const session = useSession();
-  const isSignedIn = session.status === "authenticated";
   return (
-    <div>
-      <h1>Hello World</h1>
-      {isSignedIn ? (
-        <>
-          <p>Signed in as {session.data?.user?.email}</p>
-          <button onClick={() => signOut()}>Sign out</button>
-        </>
-      ) : (
-        <button onClick={() => signIn()}>Sign in</button>
-      )}
-    </div>
+    <main className="bg-black text-white min-h-screen">
+      <Header />
+      <Hero />
+    </main>
   );
 }
