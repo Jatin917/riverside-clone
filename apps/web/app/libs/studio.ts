@@ -72,7 +72,7 @@ export const fetchLivekitToken = async (email: string, token: string) => {
 
     const data = await response.json();
     console.log("data in fetchLivekitToken is ", data);
-    return {livekitToken: data.token, wsUrl: data.wsUrl};
+    return {livekitToken: data.token as string, wsUrl: data.wsUrl as string};
   } catch (error) {
     console.error('Error fetching token:', error);  
     throw error;

@@ -76,6 +76,10 @@ export default function StudioPage() {
   const fetchToken = async (email: string, token: string) => {
     try {
       const response = await fetchLivekitToken(email, token);
+      if(response===null){
+        toast.warn("Unable to connect to the room");
+        return;
+      }
       const {livekitToken, wsUrl} = response;
       console.log("livekitToken in page is ", livekitToken, wsUrl);
       setLivekitToken(livekitToken);
