@@ -57,7 +57,7 @@ export const tokenGeneration = async ({token:roomToken, metadata,  email, socket
     });
 
     const token = await at.toJwt();
-    return {status:HTTP_STATUS.CREATED,
+    return {status:'ok',
       token,
       wsUrl: LIVEKIT_URL,
     };

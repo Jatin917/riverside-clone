@@ -5,7 +5,7 @@ import { Request, Response } from "express";
 import { RedisClient } from "../../services/redis.js";
 import { error } from "console";
 
-export const createSession = async (req: Request, res: Response) => {
+export const createSessionAndToken = async (req: Request, res: Response) => {
   try {
     const slugId = req.body?.slugId as string;
     if (!slugId) {

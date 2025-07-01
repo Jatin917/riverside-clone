@@ -7,7 +7,8 @@ import axios from 'axios';
 
 import CameraSetup from '@component/studio/studio';
 import StudioSession from '@component/studio/studioSession';
-import { createSessionAndToken, fetchLivekitToken, fetchOngoingSession } from '@lib/studio';
+import { fetchOngoingSession } from '@lib/studio';
+import {createSessionAndToken, fetchLivekitToken } from '@lib/socketStudio'
 import { createLocalAudioTrack, createLocalVideoTrack } from 'livekit-client';
 import { toast } from 'react-toastify';
 
@@ -79,8 +80,8 @@ export default function StudioPage() {
         toast.warn("Unable to connect to the room");
         return;
       }
+      console.log("response in slug id page ", response.livekitToken, response.wsUrl)
       const {livekitToken, wsUrl} = response;
-      console.log("livekitToken in page is ", livekitToken, wsUrl);
       setLivekitToken(livekitToken);
       setWsUrl(wsUrl);
       setLoading(false);
@@ -94,15 +95,16 @@ export default function StudioPage() {
   // ✅ Called when host joins
   const handleJoinStudio = async () => {
     try {
+      console.log("handle join studio call hua ", email, slugId);
       if(joinedStudio) return;
       if (!slugId || !email) throw new Error('Missing data');
       if(!sessionToken){
         const token = await createSessionAndToken(slugId);
         const studioUrl = new URL(`${window.location.origin}/studio/${slugId}`);
         studioUrl.searchParams.set('t', token);
+        await fetchToken(email, token);
         setSessionToken(token);
         setLink(studioUrl.toString());
-        await fetchToken(email, token);
       }
       setJoinedStudio(true);
     } catch (error) {

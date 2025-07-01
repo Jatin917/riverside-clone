@@ -10,7 +10,9 @@ import InviteModal from './InviteModal'
 import { Room, RoomEvent, ConnectionState, RemoteParticipant, RemoteTrack, TrackPublication } from 'livekit-client'
 import { Users, MessageCircle, Settings, FileText, Music, Grid3X3 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { leaveRoomApi, inLiveParticipants } from '@lib/studio'
+import {  inLiveParticipants } from '@lib/studio'
+import { leaveRoomApi } from "@lib/socketStudio";
+import initSocket from '@lib/clientSocket'
 
 // Types
 interface Participant {
@@ -71,6 +73,24 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionT
     }
   };
 
+  // broadcast message of host
+  useEffect(() => {
+    const socket = initSocket();
+  
+    const handleSessionEnded = (data: { message: string, isHost: boolean, name: string }) => {
+      console.log("⚠️ Session ended broadcast:", data);
+      alert(`${data.name} (host) has ended the session.`);
+      // You can redirect, show modal, or leave room here
+      router.push('/');
+    };
+  
+    socket.on("session-ended", handleSessionEnded);
+  
+    return () => {
+      socket.off("session-ended", handleSessionEnded); // Cleanup
+    };
+  }, []);
+
   useEffect(() => {
     // if (!isReadyToConnect) return;
     let newRoom: Room | null = null;
@@ -78,7 +98,6 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionT
 
     const connectToRoom = async () => {
       try {
-        console.log(wsUrl, livekitToken);
         console.log('🔄 Starting room connection...', wsUrl, livekitToken);
         if (!wsUrl || !livekitToken || !email || !sessionToken) throw new Error('Missing wsUrl or livekitToken or email or sessionToken');
 
@@ -129,10 +148,12 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionT
             setParticipantsTrack((prev) => prev.filter((t) => t.sid !== track.sid));
           }
         });
-
+        console.log("yha tak chala 1");
         await newRoom.connect(wsUrl, livekitToken);
+        console.log("yha tak chala 2");
         // new user joinee ko live participants main entry de rhe hain
         await inLiveParticipants(email, sessionToken);
+        console.log("yha tak chala 3");
         if (!isMounted) {
           newRoom.disconnect();
           return;
@@ -148,7 +169,7 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionT
         setIsConnected(false);
       }
     };
-
+    if (isConnected) return;
     connectToRoom();
 
     return () => {

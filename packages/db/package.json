@@ -3,7 +3,7 @@
     "version": "0.0.0",
     "type": "module",
     "scripts": {
-        "build":"npx tsc -b",
+        "build": "npx tsc -b",
         "db:generate": "npx prisma generate",
         "db:migrate": "npx prisma migrate dev --skip-generate",
         "db:deploy": "npx prisma migrate deploy"
