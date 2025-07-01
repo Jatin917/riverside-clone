@@ -86,7 +86,7 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionT
   
     socket.on("session-ended", handleSessionEnded);
   
-    return () => {
+  return () => {
       socket.off("session-ended", handleSessionEnded); // Cleanup
     };
   }, []);

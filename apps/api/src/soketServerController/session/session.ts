@@ -38,17 +38,12 @@ export const createToken = async (slugId:string, sessionId:string, socketId:stri
       const participantsStudioDetails = await prisma.studio.findFirst({ where: { ownerId: String(userId) } });
   
       const client = await RedisClient();
-      const participateSession = await client.get(`participateSession-${userId}`);
-      if (!participateSession) {
-        return {error: "No Participate Session found for this participant"}
-      }
       const session = await client.get(`sessionToken-${roomToken}`);
       if (!session) {
         return {error: "No Session found for this participant"}
       }
   
       const parsedData = JSON.parse(session);
-      const parsedSessionData = JSON.parse(participateSession);
       const date = new Date();
   
       const ongoingSession = await client.get(`ongoingSession-${parsedData.slugId}`);
@@ -81,14 +76,14 @@ export const createToken = async (slugId:string, sessionId:string, socketId:stri
   
         const sessionId = parsedData.sessionId;
         const startedAt = parsedOngoingSession.startedAt ? new Date(parsedOngoingSession.startedAt) : undefined;
-        const name = parsedOngoingSession.name || "unknown"
+        const name = user.name
         // Upsert participant sessions
         await Promise.all(
           allParticipants.map(async (userId) => {
             const existing = await prisma.participantSession.findFirst({
               where: { userId: String(userId), sessionId }
             });
-  
+            await client.del(`participateSession-${userId}`);
             if (existing) {
               await prisma.participantSession.update({
                 where: { id: existing.id },
@@ -120,7 +115,13 @@ export const createToken = async (slugId:string, sessionId:string, socketId:stri
         await client.del(`ongoingSession-${parsedData.slugId}`);
         await client.del(`sessionToken-${roomToken}`);
       }
-  
+
+      const participateSession = await client.get(`participateSession-${userId}`);
+      if (!isHost && !participateSession) {
+        return {error: "No Participate Session found for this participant"}
+      }
+      const parsedParticipantSessionData = JSON.parse(participateSession as string);
+
       // Ensure a participant session record exists (idempotent backup)
       const exist = await prisma.participantSession.findFirst({
         where: {
@@ -134,12 +135,13 @@ export const createToken = async (slugId:string, sessionId:string, socketId:stri
           data: {
             sessionId: parsedData.sessionId,
             userId: String(userId),
-            joinedAt: parsedSessionData.joinedAt ? new Date(parsedSessionData.joinedAt) : undefined,
+            joinedAt: !isHost ? new Date(parsedParticipantSessionData.joinedAt) : new Date(parsedOngoingSession.startedAt),
             leftAt: date,
-            name: parsedSessionData.name || 'Unknown',
+            name: user.name,
           }
         });
       }
+  
   
       return {status: HTTP_STATUS.CREATED,isHost,name:user.name, message: "Successfully left the session"}
   
