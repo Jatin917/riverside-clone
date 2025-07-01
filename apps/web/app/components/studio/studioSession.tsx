@@ -79,8 +79,18 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionT
   
     const handleSessionEnded = (data: { message: string, isHost: boolean, name: string }) => {
       console.log("⚠️ Session ended broadcast:", data);
-      alert(`${data.name} (host) has ended the session.`);
+      if(data.message==="host-left-session"){
+        if(room) room.disconnect();
+        if(localVideoRef.current) localVideoRef.current = null;
+        alert(`${data.name} (host) has ended the session.`);
+      } 
+      else alert(`${data.name} left the session`);
+      setParticipants([]);
+      setParticipantsTrack([]);
+      setRoom(null);
+      setIsConnected(false);
       // You can redirect, show modal, or leave room here
+      // yha or show kr skte hain that modal this person leaves the sesison, can show modal and other things here
       router.push('/');
     };
   
