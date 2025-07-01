@@ -1,3 +1,4 @@
+import { prisma } from "@repo/db";
 import { HTTP_STATUS } from "../../lib/types.js";
 import { RedisClient } from "../../services/redis.js";
 import crypto from 'crypto'
@@ -23,4 +24,129 @@ export const createToken = async (slugId:string, sessionId:string, socketId:stri
     return {error}
     }
   };
+  
+  export const onLeaveSession = async ({email, sessionToken:roomToken, socketId}:{email:string, sessionToken:string, socketId:string}) => {
+    try {
+      let isHost = false;
+      const user = await prisma.user.findFirst({ where: { email } });
+      if (!user) {
+        console.log("No user found with this email");
+        return {error: "User not found"}
+      }
+  
+      const userId = user.id;
+      const participantsStudioDetails = await prisma.studio.findFirst({ where: { ownerId: String(userId) } });
+  
+      const client = await RedisClient();
+      const participateSession = await client.get(`participateSession-${userId}`);
+      if (!participateSession) {
+        return {error: "No Participate Session found for this participant"}
+      }
+      const session = await client.get(`sessionToken-${roomToken}`);
+      if (!session) {
+        return {error: "No Session found for this participant"}
+      }
+  
+      const parsedData = JSON.parse(session);
+      const parsedSessionData = JSON.parse(participateSession);
+      const date = new Date();
+  
+      const ongoingSession = await client.get(`ongoingSession-${parsedData.slugId}`);
+      if (!ongoingSession) {
+        return {error: "No Ongoing Session found for this participant"}
+      }
+  
+      const parsedOngoingSession = JSON.parse(ongoingSession);
+  
+      // Update liveParticipants and wasParticipants
+      parsedOngoingSession.wasParticipants = parsedOngoingSession.wasParticipants || [];
+      parsedOngoingSession.liveParticipants = Array.isArray(parsedOngoingSession.liveParticipants)
+        ? parsedOngoingSession.liveParticipants.filter((id: string | number) => String(id) !== String(userId))
+        : [];
+  
+      if (!parsedOngoingSession.wasParticipants.includes(userId)) {
+        parsedOngoingSession.wasParticipants.push(userId);
+      }
+  
+      // Save updated ongoing session
+      await client.set(`ongoingSession-${parsedData.slugId}`, JSON.stringify(parsedOngoingSession));
+      if(!participantsStudioDetails) {
+        await client.del(`participateSession-${userId}`);
+      }
+      else if (parsedData.slugId === participantsStudioDetails.slugId) {
+        const allParticipants = [
+          ...(parsedOngoingSession.liveParticipants || []),
+          ...(parsedOngoingSession.wasParticipants || [])
+        ];
+  
+        const sessionId = parsedData.sessionId;
+        const startedAt = parsedOngoingSession.startedAt ? new Date(parsedOngoingSession.startedAt) : undefined;
+        const name = parsedOngoingSession.name || "unknown"
+        // Upsert participant sessions
+        await Promise.all(
+          allParticipants.map(async (userId) => {
+            const existing = await prisma.participantSession.findFirst({
+              where: { userId: String(userId), sessionId }
+            });
+  
+            if (existing) {
+              await prisma.participantSession.update({
+                where: { id: existing.id },
+                data: { leftAt: new Date() }
+              });
+            } else {
+              await prisma.participantSession.create({
+                data: {
+                  userId: String(userId),
+                  sessionId,
+                  joinedAt: startedAt,
+                  leftAt: new Date(),
+                  name
+                }
+              });
+            }
+          })
+        );
+  
+        // Update session metadata
+        await prisma.session.update({
+          where: { id: sessionId },
+          data: {
+            startedAt,
+            endedAt: new Date()
+          }
+        });
+        isHost = true;
+        await client.del(`ongoingSession-${parsedData.slugId}`);
+        await client.del(`sessionToken-${roomToken}`);
+      }
+  
+      // Ensure a participant session record exists (idempotent backup)
+      const exist = await prisma.participantSession.findFirst({
+        where: {
+          userId: String(userId),
+          sessionId: parsedData.sessionId
+        }
+      });
+  
+      if (!exist) {
+        await prisma.participantSession.create({
+          data: {
+            sessionId: parsedData.sessionId,
+            userId: String(userId),
+            joinedAt: parsedSessionData.joinedAt ? new Date(parsedSessionData.joinedAt) : undefined,
+            leftAt: date,
+            name: parsedSessionData.name || 'Unknown',
+          }
+        });
+      }
+  
+      return {status: HTTP_STATUS.CREATED,isHost,name:user.name, message: "Successfully left the session"}
+  
+    } catch (error) {
+      console.error("Error in onLeaveSession:", error);
+      return {error: "Internal server error"}
+    }
+  };
+  
   

@@ -28,7 +28,6 @@ export default function StudioPage() {
   const [host, setHost] = useState<boolean>(true);
   const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
   const [sessionToken, setSessionToken] = useState<string>(''); // room token
-  console.log("livekitToken in page is ", joinedStudio);
   useEffect(() => {
     if (session.status === 'loading') return; // 🚫 wait for actual status
     if (session.status === 'unauthenticated') {
