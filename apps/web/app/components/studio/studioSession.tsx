@@ -10,7 +10,10 @@ import InviteModal from './InviteModal'
 import { Room, RoomEvent, ConnectionState, RemoteParticipant, RemoteTrack, TrackPublication } from 'livekit-client'
 import { Users, MessageCircle, Settings, FileText, Music, Grid3X3 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { leaveRoomApi, inLiveParticipants } from '@lib/studio'
+import {  inLiveParticipants } from '@lib/studio'
+import { leaveRoomApi } from "@lib/socketStudio";
+import initSocket from '@lib/clientSocket'
+import { toast } from 'react-toastify'
 
 // Types
 interface Participant {
@@ -71,6 +74,34 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionT
     }
   };
 
+  // broadcast message of host
+  useEffect(() => {
+    const socket = initSocket();
+  
+    const handleSessionEnded = (data: { message: string, isHost: boolean, name: string }) => {
+      console.log("⚠️ Session ended broadcast:", data);
+      if(data.message==="host-left-session"){
+        if(room?.connect) room.disconnect();
+        if(localVideoRef.current) localVideoRef.current = null;
+        toast.warn(`${data.name} host left the session`)
+        setParticipants([]);
+        setParticipantsTrack([]);
+        setRoom(null);
+        setIsConnected(false);
+        router.push('/');
+      } 
+      else toast.warn(`${data.name} left the session`);
+      // You can redirect, show modal, or leave room here
+      // yha or show kr skte hain that modal this person leaves the sesison, can show modal and other things here
+    };
+  
+    socket.on("session-ended", handleSessionEnded);
+  
+  return () => {
+      socket.off("session-ended", handleSessionEnded); // Cleanup
+    };
+  }, []);
+
   useEffect(() => {
     // if (!isReadyToConnect) return;
     let newRoom: Room | null = null;
@@ -78,7 +109,6 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionT
 
     const connectToRoom = async () => {
       try {
-        console.log(wsUrl, livekitToken);
         console.log('🔄 Starting room connection...', wsUrl, livekitToken);
         if (!wsUrl || !livekitToken || !email || !sessionToken) throw new Error('Missing wsUrl or livekitToken or email or sessionToken');
 
@@ -129,10 +159,12 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionT
             setParticipantsTrack((prev) => prev.filter((t) => t.sid !== track.sid));
           }
         });
-
+        console.log("yha tak chala 1");
         await newRoom.connect(wsUrl, livekitToken);
+        console.log("yha tak chala 2");
         // new user joinee ko live participants main entry de rhe hain
         await inLiveParticipants(email, sessionToken);
+        console.log("yha tak chala 3");
         if (!isMounted) {
           newRoom.disconnect();
           return;
@@ -148,7 +180,7 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionT
         setIsConnected(false);
       }
     };
-
+    if (isConnected) return;
     connectToRoom();
 
     return () => {
@@ -171,27 +203,6 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionT
   // Handler for opening Sidebar
   const handleOpenSidebar = () => setIsSidebarOpen(true);
 
-  // Map LiveKit participants/tracks to ParticipantTrack[]
-  const mappedParticipantsTrack = participants.map((participant) => {
-    // Get all video tracks for this participant
-    const videoTracks = participant.getTrackPublications().filter(
-      (pub) => pub.track && pub.track.kind === 'video'
-    );
-    const videoTrack = videoTracks.length > 0 ? videoTracks[0].track : undefined;
-    let stream: MediaStream | null = null;
-    if (videoTrack && videoTrack.mediaStreamTrack) {
-      stream = new MediaStream([videoTrack.mediaStreamTrack]);
-    }
-    return {
-      id: participant.identity,
-      name: participant.name || participant.identity,
-      isHost: false,
-      videoEnabled: !!videoTrack,
-      audioEnabled: true, // You can refine this if you track audio
-      quality: 'HD',
-      stream,
-    };
-  });
   const handleLeaveRoom = async()=>{
     console.log("leave room ", sessionToken, email);
     // room.localParticipant.videoTracks.forEach(pub => pub.track?.stop());
@@ -200,9 +211,15 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionT
       console.log("session token or email or not there ", sessionToken, email);
       return;
     }
-    await leaveRoomApi(email, sessionToken)
-    await room?.disconnect();
-    router.push('/');
+    const response = await leaveRoomApi(email, sessionToken)
+    if(response.message=="left-session"){
+      await room?.disconnect();     router.push('/');
+      setParticipants([]);
+      setParticipantsTrack([]);
+      setRoom(null);
+      setIsConnected(false);
+      toast.success("Left Session ");
+    } 
     // yha prr check krna hain that ki unko kahi route krna ho agar koi feed back form lena ho and all
   }
   return (
