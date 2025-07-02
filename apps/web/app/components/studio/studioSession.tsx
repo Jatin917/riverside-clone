@@ -83,16 +83,16 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionT
       if(data.message==="host-left-session"){
         if(room?.connect) room.disconnect();
         if(localVideoRef.current) localVideoRef.current = null;
-        toast.success(`${data.name} host left the session`)
+        toast.warn(`${data.name} host left the session`)
+        setParticipants([]);
+        setParticipantsTrack([]);
+        setRoom(null);
+        setIsConnected(false);
+        router.push('/');
       } 
-      else alert(`${data.name} left the session`);
-      setParticipants([]);
-      setParticipantsTrack([]);
-      setRoom(null);
-      setIsConnected(false);
+      else toast.warn(`${data.name} left the session`);
       // You can redirect, show modal, or leave room here
       // yha or show kr skte hain that modal this person leaves the sesison, can show modal and other things here
-      router.push('/');
     };
   
     socket.on("session-ended", handleSessionEnded);
@@ -212,9 +212,12 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionT
       return;
     }
     const response = await leaveRoomApi(email, sessionToken)
-    console.log("response is ", response);
     if(response.message=="left-session"){
       await room?.disconnect();     router.push('/');
+      setParticipants([]);
+      setParticipantsTrack([]);
+      setRoom(null);
+      setIsConnected(false);
       toast.success("Left Session ");
     } 
     // yha prr check krna hain that ki unko kahi route krna ho agar koi feed back form lena ho and all
