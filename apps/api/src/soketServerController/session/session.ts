@@ -3,28 +3,70 @@ import { HTTP_STATUS } from "../../lib/types.js";
 import { RedisClient } from "../../services/redis.js";
 import crypto from 'crypto'
 
+  export const createSessionAndToken = async (slugId:string) => {
+    try {
+      if (!slugId) {
+        return {status:HTTP_STATUS.NOT_FOUND,  message: "Missing slugId in request" };
+      }
+  
+      const studio = await prisma.studio.findFirst({ where: { slugId } });
+      if (!studio) {
+        return {status:HTTP_STATUS.CONFLICT,  message: "No studio found" };
+      }
 
-export const createToken = async (slugId:string, sessionId:string, socketId:string) => {
+  
+      const session = await prisma.session.create({
+        data: {
+          studioId: studio.id,
+          startedAt: new Date(),
+          endedAt: new Date(), // For now default; needs update later
+        },
+      });
+      await prisma.participantSession.create({
+        data: {
+          sessionId: session.id,
+          userId: studio.ownerId,
+          name: "Host",
+          joinedAt: new Date(),
+          leftAt: new Date(), // For now default; needs update later
+        },
+      });
+      console.log("session created ", session.id);
+      return {status:"ok", 
+        message: "Successfully created session",
+        session: {
+          id: session.id,
+          studioId: session.studioId,
+          startedAt: session.startedAt,
+        },
+      };
+    } catch (error) {
+      console.error("CreateSession error:", (error as Error));
+      return {status:HTTP_STATUS.INTERNAL_SERVER_ERROR,  message: "Internal server error" };
+    }
+  };
+  
+  export const createToken = async (slugId:string, sessionId:string, socketId:string) => {
     try {
       const token = crypto.randomBytes(6).toString('base64url');
       const client = await RedisClient();
       // this is on going session for the studio when the user reconnects to the studio he should get the room token(token->sessionId+slugId) so that he can join the session again
       await client.set(`sessionToken-${token}`, JSON.stringify({ slugId, sessionId }));
       await client.set(`ongoingSession-${slugId}`, JSON.stringify({
-        hostSocketId:socketId,
+        socketId, 
         roomToken: token,
         startedAt: new Date(),
         liveParticipants:[],
         wasParticipants:[],
       }), { EX: 7200 }); // ye 2 hours baad apne aap se khtm ho jayega session so either apan jab host nikalega session us time apan db main entry kr denge and if the session is closed by due to time limit fir kya kr skte hain?
       // host ka participate session redis main instanse nhi bna rhe as kb ongoing session ko kill krenge tb we can make direct entry in db from there only
-      return { token };
+      return {status:"ok",  token };
     } catch (error) {
       console.error((error as Error));
-    return {error}
+      return { status:HTTP_STATUS.INTERNAL_SERVER_ERROR, message: "Internal server error" };
     }
   };
-  
+
   export const onLeaveSession = async ({email, sessionToken:roomToken, socketId}:{email:string, sessionToken:string, socketId:string}) => {
     try {
       let isHost = false;

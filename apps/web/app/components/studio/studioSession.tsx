@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation'
 import {  inLiveParticipants } from '@lib/studio'
 import { leaveRoomApi } from "@lib/socketStudio";
 import initSocket from '@lib/clientSocket'
+import { toast } from 'react-toastify'
 
 // Types
 interface Participant {
@@ -80,9 +81,9 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionT
     const handleSessionEnded = (data: { message: string, isHost: boolean, name: string }) => {
       console.log("⚠️ Session ended broadcast:", data);
       if(data.message==="host-left-session"){
-        if(room) room.disconnect();
+        if(room?.connect) room.disconnect();
         if(localVideoRef.current) localVideoRef.current = null;
-        alert(`${data.name} (host) has ended the session.`);
+        toast.success(`${data.name} host left the session`)
       } 
       else alert(`${data.name} left the session`);
       setParticipants([]);
@@ -202,27 +203,6 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionT
   // Handler for opening Sidebar
   const handleOpenSidebar = () => setIsSidebarOpen(true);
 
-  // Map LiveKit participants/tracks to ParticipantTrack[]
-  const mappedParticipantsTrack = participants.map((participant) => {
-    // Get all video tracks for this participant
-    const videoTracks = participant.getTrackPublications().filter(
-      (pub) => pub.track && pub.track.kind === 'video'
-    );
-    const videoTrack = videoTracks.length > 0 ? videoTracks[0].track : undefined;
-    let stream: MediaStream | null = null;
-    if (videoTrack && videoTrack.mediaStreamTrack) {
-      stream = new MediaStream([videoTrack.mediaStreamTrack]);
-    }
-    return {
-      id: participant.identity,
-      name: participant.name || participant.identity,
-      isHost: false,
-      videoEnabled: !!videoTrack,
-      audioEnabled: true, // You can refine this if you track audio
-      quality: 'HD',
-      stream,
-    };
-  });
   const handleLeaveRoom = async()=>{
     console.log("leave room ", sessionToken, email);
     // room.localParticipant.videoTracks.forEach(pub => pub.track?.stop());
@@ -231,9 +211,12 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionT
       console.log("session token or email or not there ", sessionToken, email);
       return;
     }
-    await leaveRoomApi(email, sessionToken)
-    await room?.disconnect();
-    router.push('/');
+    const response = await leaveRoomApi(email, sessionToken)
+    console.log("response is ", response);
+    if(response.message=="left-session"){
+      await room?.disconnect();     router.push('/');
+      toast.success("Left Session ");
+    } 
     // yha prr check krna hain that ki unko kahi route krna ho agar koi feed back form lena ho and all
   }
   return (

@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import ProductDropdown from "./ProductDropdown";
+import { signIn } from "next-auth/react";
 
 const Header = () => (
   <header className="fixed top-0 left-0 w-full z-30 flex items-center justify-between px-8 py-4 bg-transparent">
@@ -23,7 +24,7 @@ const Header = () => (
     {/* Right: Actions */}
     <div className="flex items-center gap-4">
       <a href="#" className="text-white">Contact Sales</a>
-      <a href="#" className="text-white">Login</a>
+      <a onClick={()=>signIn()} className="text-white cursor-pointer">Login</a>
       <button className="px-4 py-2 border border-white rounded text-white font-semibold hover:bg-white hover:text-black transition">
         Start for Free
       </button>

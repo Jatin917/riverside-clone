@@ -1,25 +1,33 @@
 // src/socket-handler.ts
 import { Server, Socket } from "socket.io";
-import { createToken, onLeaveSession } from "./soketServerController/session/session.js";
+import { createSessionAndToken, createToken, onLeaveSession } from "./soketServerController/session/session.js";
 import { tokenGeneration } from "./soketServerController/livekit-token.ts/tokenGeneration.js";
 import { error } from "console";
+import { callbackify } from "util";
 
 export const socketHandler = (io: Server) => {
   io.on("connection", (socket: Socket) => {
     // session create kr rhe hain then this socket belongs to the host means host ne signal bheja hain that this is me as host so isko host session main store kr lete hain
     const socketId = socket.id;
     let roomId:(string | null) = null;
-    socket.on("create-session", async({slugId, sessionId}, callback)=>{
-      const response = await createToken(slugId, sessionId, socketId);
-      if(response.token){
-        roomId = response.token as string;
-        callback({status:'ok', message:'session-created', sessionToken:response.token});
-        socket.join(roomId);
+    socket.on("create-session", async({slugId}, callback)=>{
+      const response = await createSessionAndToken(slugId);
+      if(response.session){
+        callback(response);
         return;
       }
-      callback({status:'error', message:'session-creation-failed', error:response.error});
+      callback(response);
       return;
     });
+    socket.on("create-session-token", async({slugId, sessionId}, callback)=>{
+      const response = await createToken(slugId, sessionId, socketId);
+      if(response.token){
+        callback({status:"ok", message:"token created", token:response.token});
+        return;
+      }
+      callback({status:"error", message:"error in session creation"});
+      return;
+    })
     socket.on('create-livekit-token', async({token, email, isStreamer:metadata}, callback)=>{
       // jo ye token aa rhi hain woh session/room token hain 
       const response = await tokenGeneration({token, email, metadata, socketId});
@@ -34,6 +42,7 @@ export const socketHandler = (io: Server) => {
       return;
     });
 
+
     socket.on("leave-session", async ({ email, sessionToken }: { email: string, sessionToken: string }, callback) => {
       const response = await onLeaveSession({ email, sessionToken, socketId: socket.id });
       const roomId = sessionToken;
@@ -45,6 +54,7 @@ export const socketHandler = (io: Server) => {
       if (response.isHost) {
         // Host left — notify all participants
         socket.to(roomId).emit("session-ended", {
+          status:"ok",
           message: "host-left-session",
           isHost: response.isHost,
           name: response.name,
@@ -53,11 +63,13 @@ export const socketHandler = (io: Server) => {
         // Make everyone leave the room
         const clients = await io.in(roomId).fetchSockets();
         clients.forEach(s => s.leave(roomId));
+        callback({status:"ok", message:"left-session"});
         return;
       }
     
       // Send ack back to the sender
       socket.to(roomId).emit('leave-session', {
+        status:"ok", 
         message:"left-session", 
         name:response.name
       })

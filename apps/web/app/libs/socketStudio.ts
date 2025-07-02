@@ -15,15 +15,11 @@ export function emitWithAck<T = any>(event: string, data: any): Promise<T> {
 
 export const createSessionAndToken = async (slugId: string) => {
     try {
-      const session = await emitWithAck('create-session', {slugId});
-      if (!session?.sessionToken) throw new Error('Session creation failed');
-  
-      const tokenRes = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/session-token`, {
-        slugId,
-        sessionId: session.sessionToken,
-      });
-      const token = tokenRes.data.token;
-  
+      const response = await emitWithAck('create-session', {slugId});
+      if (!response.session?.id) throw new Error('Session creation failed');
+      const sessionId = response.session.id;
+      const tokenRes = await emitWithAck("create-session-token", {slugId, sessionId });
+      const token = tokenRes.token;
       return token;
     } catch (error) {
       console.error('Error creating session and token:', error);
@@ -57,7 +53,7 @@ export const leaveRoomApi = async (email: string, sessionToken: string) => {
   try {
     const response = await emitWithAck('leave-session', { email, sessionToken });
     console.log("leave session clien ", response)
-    return response&&null;
+    return response;
   } catch (error) {
     console.error('Error in leaveRoomApi:', (error as Error).message);
     return null;
