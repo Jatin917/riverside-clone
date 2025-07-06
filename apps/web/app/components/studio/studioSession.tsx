@@ -237,6 +237,7 @@ const StudioSession = ({previewStream, wsUrl, livekitToken, link, host, sessionT
           {/* </div> */}
         {/* </div> */}
         <ControlBar
+          sessionToken={sessionToken}
           previewStream={previewStream}
           isRecording={false}
           onToggleRecording={() => void(!false)}

@@ -44,15 +44,12 @@ export const socketHandler = (io: Server) => {
 
 
     socket.on("leave-session", async ({ email, sessionToken }: { email: string, sessionToken: string }, callback) => {
-      console.log("leave session backecd main aai")
       const response = await onLeaveSession({ email, sessionToken, socketId: socket.id });
-      console.log("leave session backecd main aai with response ", response)
       const roomId = sessionToken;
       if(response.error){
         callback({error:"problem in leaving session"});
         return;
       }
-      console.log("leave session ", response)
       socket.leave(roomId);
       if (response.isHost) {
         // Host left — notify all participants

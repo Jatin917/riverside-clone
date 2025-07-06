@@ -1,10 +1,13 @@
 "use client"
 
+import { recordingMedia } from "@lib/recording";
 import { FileText, Mic, MicOff, Monitor, MonitorOff, PhoneOff, Video, VideoOff } from "lucide-react"
-import { useState } from "react"
+import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react"
+import { toast } from "react-toastify";
 
 // Control Bar Component
-const ControlBar = ({previewStream, onLeave }: {previewStream:MediaStream | null,  onLeave: () => void }) => {
+const ControlBar = ({previewStream, onLeave, sessionToken }: {previewStream:MediaStream | null,  onLeave: () => void, sessionToken:string }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
@@ -12,6 +15,15 @@ const ControlBar = ({previewStream, onLeave }: {previewStream:MediaStream | null
   const [scriptEnabled, setScriptEnabled] = useState(true);
   const [shareEnabled, setShareEnabled] = useState(true);
 
+  const session = useSession();
+  useEffect(()=>{
+    if(!session || !session.data || !session.data.user || !session.data.user.userDBId){
+      toast.warn("No userId exist in session");
+      return;
+    }
+    const userId = session.data.user.userDBId;
+    recordingMedia(sessionToken, userId, isRecording, previewStream);
+  },[isRecording])
   function onToggleRecording() {
     setIsRecording((prev) => !prev);
   }
@@ -49,7 +61,7 @@ const ControlBar = ({previewStream, onLeave }: {previewStream:MediaStream | null
       <div className="flex items-center justify-center space-x-4">
         <button
           onClick={onToggleRecording}
-          className={`px-6 py-3 rounded-lg flex items-center space-x-2 font-medium bg-[#232323] hover:bg-[#3d3d3d] text-white`}
+          className={`cursor-pointer px-6 py-3 rounded-lg flex items-center space-x-2 font-medium bg-[#232323] hover:bg-[#3d3d3d] text-white`}
         >
           <div className={`w-3 h-3 rounded-full ${isRecording ? 'bg-white' : 'bg-red-500'}`}></div>
           <span>{isRecording ? 'Stop' : 'Record'}</span>
