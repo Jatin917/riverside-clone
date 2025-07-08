@@ -1,6 +1,6 @@
 "use client"
 
-import { recordingMedia } from "@lib/recording";
+import { startRecordingMedia, stopRecordingMedia } from "@lib/recording";
 import { FileText, Mic, MicOff, Monitor, MonitorOff, PhoneOff, Video, VideoOff } from "lucide-react"
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react"
@@ -26,13 +26,9 @@ const ControlBar = ({previewStream, onLeave, sessionToken }: {previewStream:Medi
       return;
     }
     const userId = session.data.user.userDBId;
-    recordingMedia(sessionToken, userId, isRecording, previewStream).then(() => {
-      setIsRecording((prev) => !prev);
-    }).catch((err:Error) => {
-      const error = err;
-      console.error("Recording error:", error);
-      toast.error("Failed to start recording");
-    });    
+    if(!isRecording) startRecordingMedia(sessionToken, userId, previewStream); 
+    else stopRecordingMedia(sessionToken, userId);
+    setIsRecording((prev) => !prev);
   }
   function onToggleAudio() {
     if (!previewStream) return;

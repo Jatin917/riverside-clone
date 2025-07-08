@@ -1,13 +1,11 @@
-import { getServerSession } from "next-auth";
 import { uploadChunkToSupabase } from "./supabaseClient";
-import { AUTH_OPTIONS } from "./auth";
 import { initDB } from "./indexDB";
-import { init } from "next/dist/compiled/webpack/webpack";
 
 let recorder: MediaRecorder | null = null;
 // Remove incorrect type annotation and initialization for dbInstance
 let dbInstance:any;
 let uploadInterval: ReturnType<typeof setInterval> | null = null;
+let chunkIdx = 0;
 
 // Get the stream from global window (assumes it was set earlier)
 // const localStream = window.localStream as MediaStream | null;
@@ -17,7 +15,7 @@ export const startRecordingMedia = async (
   userId: string,
   previewStream: MediaStream
 ) => {
-    const localStream = previewStream;
+  const localStream = previewStream;
   if (!localStream) {
     console.error('No localStream found on window.');
     return;
@@ -51,11 +49,10 @@ export const startRecordingMedia = async (
       recorder.onerror = (e) => {
         console.error("❌ Recording error", e);
       };
-    let index = 0;
 
     recorder.ondataavailable = async (e) => {
       const chunk = {
-        index,
+        chunkIdx,
         blob: e.data,
         uploaded: false,
         retryCount: 0,
@@ -64,14 +61,14 @@ export const startRecordingMedia = async (
       // Ensure 'db' is available in the current scope
       const dbInstance = await initDB();
       if (!dbInstance) {
-        console.error('IndexedDB instance "db" not found on window.');
+        console.error('chunkIdxedDB instance "db" not found on window.');
         return {recordingState:false};
       }
 
       await dbInstance.put('chunks', chunk); // Save blob
-      await dbInstance.put('queue', { index, uploaded: false }); // Metadata for upload queue
+      await dbInstance.put('queue', { chunkIdx, uploaded: false }); // Metadata for upload queue
 
-      index++;
+      chunkIdx++;
     };
     recorder.start(10_000); // 10s per chunk
     if (!uploadInterval) {
@@ -84,6 +81,19 @@ export const startRecordingMedia = async (
   }
 };
 
+export const stopRecordingMedia = async (sessionToken:string, userId:string) => {
+  if (recorder && recorder.state !== "inactive") {
+    recorder.stop();
+    await processQueue(sessionToken, userId);
+  }
+  if (uploadInterval) {
+    clearInterval(uploadInterval);
+    uploadInterval = null;
+    console.log("⛔ Upload interval cleared");
+  }
+};
+
+
 let isUploading = false;
 export async function processQueue(sessionToken: string, userId: string) {
   if (isUploading) return;
@@ -94,7 +104,7 @@ export async function processQueue(sessionToken: string, userId: string) {
       dbInstance = await initDB();
     }
     if (!dbInstance) {
-      console.error('IndexedDB instance "db" not found on window.');
+      console.error('chunkIdxedDB instance "db" not found on window.');
       return;
     }
 
@@ -102,18 +112,18 @@ export async function processQueue(sessionToken: string, userId: string) {
     for (const meta of queue) {
       if (meta.uploaded) continue;
 
-      const chunkRecord = await dbInstance.get('chunks', meta.index);
+      const chunkRecord = await dbInstance.get('chunks', meta.chunkIdx);
       if (!chunkRecord?.blob) {
-        console.warn(`Missing blob for chunk index ${meta.index}`);
+        console.warn(`Missing blob for chunk chunkIdx ${meta.chunkIdx}`);
         continue;
       }
 
       try {
-        await uploadChunkToSupabase(meta.index, chunkRecord.blob, sessionToken, userId);
-        await dbInstance.put('queue', { ...meta, uploaded: true });
-        console.log(`✅ Uploaded chunk index ${meta.index}`);
+        await uploadChunkToSupabase(meta.chunkIdx, chunkRecord.blob, sessionToken, userId);
+        await dbInstance.delete('queue',  meta.chunkIdx);
+        console.log(`✅ Uploaded chunk chunkIdx ${meta.chunkIdx}`);
       } catch (e) {
-        console.error(`❌ Upload failed for chunk index ${meta.index}`, e);
+        console.error(`❌ Upload failed for chunk chunkIdx ${meta.chunkIdx}`, e);
         await dbInstance.put('queue', { ...meta, uploaded: false });
         // Retry logic as you described is fine
       }
