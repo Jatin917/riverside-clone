@@ -106,7 +106,7 @@ export default function StudioPage() {
         setSessionToken(token);
         setLink(studioUrl.toString());
       }
-      setJoinedStudio(true);
+        setJoinedStudio(true);
     } catch (error) {
       console.error('Join Studio Failed:', error);
     }

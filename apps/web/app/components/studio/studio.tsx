@@ -19,6 +19,8 @@ interface CameraSetupProps {
   onJoinStudio?: () => void;
   hostName?: string;
   studioName?: string;
+  previewStream:MediaStream | null;
+  setPreviewStream:React.Dispatch<React.SetStateAction<MediaStream | null>>;
 }
 
 const CameraSetup: React.FC<CameraSetupProps> = ({

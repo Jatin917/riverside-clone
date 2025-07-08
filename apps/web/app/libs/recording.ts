@@ -8,7 +8,7 @@ import { init } from "next/dist/compiled/webpack/webpack";
 // Get the stream from global window (assumes it was set earlier)
 // const localStream = window.localStream as MediaStream | null;
 // Main function to start recording
-export const recordingMedia = (sessionToken:string, userId:string, state:boolean, previewStream:MediaStream) => {
+export const recordingMedia = async (sessionToken:string, userId:string, state:boolean, previewStream:MediaStream) => {
     const localStream = previewStream;
   if (!localStream) {
     console.error('No localStream found on window.');
@@ -69,7 +69,7 @@ export const recordingMedia = (sessionToken:string, userId:string, state:boolean
     else{
         recorder.start(10_000); // 10s per chunk
     }
-    processQueue(sessionToken, userId);
+    await processQueue(sessionToken, userId);
 
   } catch (error) {
     console.error('Failed to start recording:', error);
@@ -85,9 +85,9 @@ export async function processQueue(sessionToken:string, userId:string) {
       return;
     }
     
-    const queue = await dbInstance.getAll('queue');
-    
-    console.log("process queue in queue")
+  const queue = await dbInstance.getAll('queue');
+  
+  console.log("process queue in queue")
   for (const meta of queue) {
     if (meta.uploaded) continue;
       const chunkRecord = await dbInstance.get('chunks', meta.index);

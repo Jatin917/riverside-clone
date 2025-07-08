@@ -7,7 +7,7 @@ import { useEffect, useState } from "react"
 import { toast } from "react-toastify";
 
 // Control Bar Component
-const ControlBar = ({previewStream, onLeave, sessionToken }: {previewStream:MediaStream | null,  onLeave: () => void, sessionToken:string }) => {
+const ControlBar = ({previewStream, onLeave, sessionToken }: {previewStream:MediaStream | null,  onLeave: () => void, sessionToken:string | null }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
@@ -16,16 +16,23 @@ const ControlBar = ({previewStream, onLeave, sessionToken }: {previewStream:Medi
   const [shareEnabled, setShareEnabled] = useState(true);
 
   const session = useSession();
-  useEffect(()=>{
+  function onToggleRecording() {
+    if(!sessionToken || !previewStream){
+      toast.warn("No session token or localstream available")
+      return;
+    }
     if(!session || !session.data || !session.data.user || !session.data.user.userDBId){
       toast.warn("No userId exist in session");
       return;
     }
     const userId = session.data.user.userDBId;
-    recordingMedia(sessionToken, userId, isRecording, previewStream);
-  },[isRecording])
-  function onToggleRecording() {
-    setIsRecording((prev) => !prev);
+    recordingMedia(sessionToken, userId, isRecording, previewStream).then(() => {
+      setIsRecording((prev) => !prev);
+    }).catch((err:Error) => {
+      const error = err;
+      console.error("Recording error:", error);
+      toast.error("Failed to start recording");
+    });    
   }
   function onToggleAudio() {
     if (!previewStream) return;
