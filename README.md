@@ -27,6 +27,7 @@ Inspired by platforms like Riverside.fm, this clone replicates core features and
 - 🔒 Join a studio via invite link  
 - 👋 Graceful session exit  
 - 🧠 Real-time media handled via **LiveKit**
+- - 💾 Chunked local recording every 10s, stored in **IndexedDB** and auto-uploaded to **S3 via Supabase**
 
 ---
 
