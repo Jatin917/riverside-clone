@@ -17,19 +17,23 @@ export const AUTH_OPTIONS = {
     secret: process.env.NEXT_AUTH_SECRET,
   },
   callbacks: {
-    async jwt({ token, account, profile }) {
+    async jwt({ token, account, profile, user }) {
       if (account && profile) {
         token.idToken = account.id_token ?? "NO_ID_TOKEN_FOUND";
         token.userId = profile.sub;
+      }
+      if(user?.userDBId){
+        token.userDBId = user.userDBId;
       }
       return token;
     },
     async session({ session, token }) {
       session.idToken = token.idToken;
       session.user.userId = token.userId as string;
+      session.user.userDBId = token.userDBId;
       return session;
     },
-    async signIn({ account, profile }) {
+    async signIn({ user, account, profile }) {
       if (!account || !profile) return false;
 
       try {
@@ -37,15 +41,16 @@ export const AUTH_OPTIONS = {
         const { name, email } = profile as { name?: string | null; email?: string | null };
         if (!email) return false;
 
-        const existingUser = await prisma.user.findUnique({ where: { email } });
+        let existingUser = await prisma.user.findUnique({ where: { email } });
         if (!existingUser) {
-          await prisma.user.create({
+          existingUser = await prisma.user.create({
             data: {
               email,
               name: name || "",
             },
           });
         }
+        user.userDBId = existingUser.id;
         return true;
       } catch (error) {
         console.error("Error during sign-in:", error);

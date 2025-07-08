@@ -9,11 +9,18 @@ interface MediaDevice {
   label: string;
   kind: 'videoinput' | 'audioinput' | 'audiooutput';
 }
+declare global {
+  interface Window {
+    localStream: MediaStream;
+  }
+}
 
 interface CameraSetupProps {
   onJoinStudio?: () => void;
   hostName?: string;
   studioName?: string;
+  previewStream:MediaStream | null;
+  setPreviewStream:React.Dispatch<React.SetStateAction<MediaStream | null>>;
 }
 
 const CameraSetup: React.FC<CameraSetupProps> = ({
@@ -78,7 +85,11 @@ const CameraSetup: React.FC<CameraSetupProps> = ({
       ]);
       setHasPermission(true);
       setPreviewStream(stream);
-      
+      // yha pehle window object main localstream hain nhi for typescript to humne globally usme insert kiya ye key with its type 
+      // window.localstream se hum stream ko browser main globally available krwa rhe hain taki hum use media recorder main use kr ske and then as a chunk use update kr ske
+      // hum just previewStream se bhi mediaRecorder ko bhi initialise kr skte hain but we use below one to make the stream available globally
+      // window.localStream = new MediaStream(stream);
+
       const availableDevices = await getMediaDevices();
       setDevices(availableDevices);
       
