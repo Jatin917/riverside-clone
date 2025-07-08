@@ -23,12 +23,11 @@ export const startRecordingMedia = async (
 
   try {
     if(!recorder){
-      const recorderVar = new MediaRecorder(localStream, {
+      recorder = new MediaRecorder(localStream, {
         mimeType: 'video/webm; codecs=vp8,opus',
         videoBitsPerSecond: 1_000_000, // 1 Mbps
         audioBitsPerSecond: 128_000,
       });
-      recorder = recorderVar;
     }
     recorder.onstart = () => {
         console.log("✅ Recording started");
@@ -52,7 +51,7 @@ export const startRecordingMedia = async (
 
     recorder.ondataavailable = async (e) => {
       const chunk = {
-        chunkIdx,
+        index:chunkIdx,
         blob: e.data,
         uploaded: false,
         retryCount: 0,
@@ -66,7 +65,7 @@ export const startRecordingMedia = async (
       }
 
       await dbInstance.put('chunks', chunk); // Save blob
-      await dbInstance.put('queue', { chunkIdx, uploaded: false }); // Metadata for upload queue
+      await dbInstance.put('queue', { index:chunkIdx, uploaded: false }); // Metadata for upload queue
 
       chunkIdx++;
     };
@@ -112,18 +111,18 @@ export async function processQueue(sessionToken: string, userId: string) {
     for (const meta of queue) {
       if (meta.uploaded) continue;
 
-      const chunkRecord = await dbInstance.get('chunks', meta.chunkIdx);
+      const chunkRecord = await dbInstance.get('chunks', meta.index);
       if (!chunkRecord?.blob) {
-        console.warn(`Missing blob for chunk chunkIdx ${meta.chunkIdx}`);
+        console.warn(`Missing blob for chunk chunkIdx ${meta.index}`);
         continue;
       }
 
       try {
-        await uploadChunkToSupabase(meta.chunkIdx, chunkRecord.blob, sessionToken, userId);
-        await dbInstance.delete('queue',  meta.chunkIdx);
-        console.log(`✅ Uploaded chunk chunkIdx ${meta.chunkIdx}`);
+        await uploadChunkToSupabase(meta.index, chunkRecord.blob, sessionToken, userId);
+        await dbInstance.delete('queue',  meta.index);
+        console.log(`✅ Uploaded chunk chunkIdx ${meta.index}`);
       } catch (e) {
-        console.error(`❌ Upload failed for chunk chunkIdx ${meta.chunkIdx}`, e);
+        console.error(`❌ Upload failed for chunk chunkIdx ${meta.index}`, e);
         await dbInstance.put('queue', { ...meta, uploaded: false });
         // Retry logic as you described is fine
       }
