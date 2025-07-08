@@ -4,11 +4,19 @@ import { AUTH_OPTIONS } from "./auth";
 import { initDB } from "./indexDB";
 import { init } from "next/dist/compiled/webpack/webpack";
 
+let recorder: MediaRecorder | null = null;
+// Remove incorrect type annotation and initialization for dbInstance
+let dbInstance:any;
+let uploadInterval: ReturnType<typeof setInterval> | null = null;
 
 // Get the stream from global window (assumes it was set earlier)
 // const localStream = window.localStream as MediaStream | null;
 // Main function to start recording
-export const recordingMedia = async (sessionToken:string, userId:string, state:boolean, previewStream:MediaStream) => {
+export const startRecordingMedia = async (
+  sessionToken: string,
+  userId: string,
+  previewStream: MediaStream
+) => {
     const localStream = previewStream;
   if (!localStream) {
     console.error('No localStream found on window.');
@@ -16,11 +24,14 @@ export const recordingMedia = async (sessionToken:string, userId:string, state:b
   }
 
   try {
-    const recorder = new MediaRecorder(localStream, {
-      mimeType: 'video/webm; codecs=vp8,opus',
-      videoBitsPerSecond: 1_000_000, // 1 Mbps
-      audioBitsPerSecond: 128_000,
-    });
+    if(!recorder){
+      const recorderVar = new MediaRecorder(localStream, {
+        mimeType: 'video/webm; codecs=vp8,opus',
+        videoBitsPerSecond: 1_000_000, // 1 Mbps
+        audioBitsPerSecond: 128_000,
+      });
+      recorder = recorderVar;
+    }
     recorder.onstart = () => {
         console.log("✅ Recording started");
       };
@@ -54,7 +65,7 @@ export const recordingMedia = async (sessionToken:string, userId:string, state:b
       const dbInstance = await initDB();
       if (!dbInstance) {
         console.error('IndexedDB instance "db" not found on window.');
-        return;
+        return {recordingState:false};
       }
 
       await dbInstance.put('chunks', chunk); // Save blob
@@ -62,51 +73,52 @@ export const recordingMedia = async (sessionToken:string, userId:string, state:b
 
       index++;
     };
-    if(state){
-        recorder.stop();
-        console.log("recording stopped");
+    recorder.start(10_000); // 10s per chunk
+    if (!uploadInterval) {
+      uploadInterval = setInterval(() => {
+        processQueue(sessionToken, userId);
+      }, 10_000);
     }
-    else{
-        recorder.start(10_000); // 10s per chunk
-    }
-    await processQueue(sessionToken, userId);
-
   } catch (error) {
     console.error('Failed to start recording:', error);
   }
 };
 
-export async function processQueue(sessionToken:string, userId:string) {
-  // Ensure 'db' is available in the current scope
-  console.log("process queue")
-  const dbInstance = await initDB();
-  if (!dbInstance) {
+let isUploading = false;
+export async function processQueue(sessionToken: string, userId: string) {
+  if (isUploading) return;
+  isUploading = true;
+
+  try {
+    if (!dbInstance) {
+      dbInstance = await initDB();
+    }
+    if (!dbInstance) {
       console.error('IndexedDB instance "db" not found on window.');
       return;
     }
-    
-  const queue = await dbInstance.getAll('queue');
-  
-  console.log("process queue in queue")
-  for (const meta of queue) {
-    if (meta.uploaded) continue;
+
+    const queue = await dbInstance.getAll('queue');
+    for (const meta of queue) {
+      if (meta.uploaded) continue;
+
       const chunkRecord = await dbInstance.get('chunks', meta.index);
-      if (!chunkRecord || !chunkRecord.blob) {
+      if (!chunkRecord?.blob) {
         console.warn(`Missing blob for chunk index ${meta.index}`);
         continue;
       }
-  
+
       try {
         await uploadChunkToSupabase(meta.index, chunkRecord.blob, sessionToken, userId);
-        console.log("process queue uploaded to supabase")
-  
-        // Mark uploaded
         await dbInstance.put('queue', { ...meta, uploaded: true });
-        console.log(`Uploaded chunk index ${meta.index}`);
+        console.log(`✅ Uploaded chunk index ${meta.index}`);
       } catch (e) {
-        console.error(`Upload failed for chunk index ${meta.index}`, e);
-        // Retry will happen next cycle or manually
+        console.error(`❌ Upload failed for chunk index ${meta.index}`, e);
+        await dbInstance.put('queue', { ...meta, uploaded: false });
+        // Retry logic as you described is fine
       }
     }
+  } finally {
+    isUploading = false; // ✅ Runs once after entire processing
   }
-  
+}
