@@ -80,7 +80,13 @@ export const startRecordingMedia = async (
         console.error('chunkIdxedDB instance "db" not found on window.');
         return {recordingState:false};
       }
-
+      const chunks = await dbInstance.getAll('chunks');
+      if (chunks.length === 0) {
+        chunkIdx = 0;
+      } else {
+        const maxIndex = Math.max(...chunks.map(chunk => chunk.index ?? 0));
+        chunkIdx = maxIndex + 1;
+      }
       await dbInstance.put('chunks', chunk); // Save blob
       await dbInstance.put('queue', { index:chunkIdx, uploaded: false }); // Metadata for upload queue
 
@@ -100,6 +106,7 @@ export const startRecordingMedia = async (
 export const stopRecordingMedia = async (sessionToken:string, userId:string) => {
   if (recorder && recorder.state !== "inactive") {
     recorder.stop();
+    // recorder.stop() wala function on data available event trigger kar rha hain but uploading things to the indexDB takes time as this is async works but processQueue runs imadiately after running stop hence the last chunk was not uploaded on to the s3 hence used this below function to make sure last part saved first then only we process chunks from the queue.
     await waitForLastChunk(chunkIdx);
     await processQueue(sessionToken, userId, "stop");
   }
