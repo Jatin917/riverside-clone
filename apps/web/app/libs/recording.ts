@@ -7,6 +7,23 @@ let dbInstance:any;
 let uploadInterval: ReturnType<typeof setInterval> | null = null;
 let chunkIdx = 0;
 
+
+function waitForLastChunk(chunkToWaitFor: number): Promise<void> {
+  return new Promise(async (resolve, reject) => {
+    const db = await initDB();
+    if (!db) return resolve(); // fallback safety
+
+    const interval = setInterval(async () => {
+      const queue = await db.getAll('queue');
+      const found = queue.some(q => q.index === chunkToWaitFor);
+      if (found) {
+        clearInterval(interval);
+        resolve();
+      }
+    }, 100); // check every 100ms
+  });
+}
+
 // Get the stream from global window (assumes it was set earlier)
 // const localStream = window.localStream as MediaStream | null;
 // Main function to start recording
@@ -83,7 +100,8 @@ export const startRecordingMedia = async (
 export const stopRecordingMedia = async (sessionToken:string, userId:string) => {
   if (recorder && recorder.state !== "inactive") {
     recorder.stop();
-    await processQueue(sessionToken, userId);
+    await waitForLastChunk(chunkIdx);
+    await processQueue(sessionToken, userId, "stop");
   }
   if (uploadInterval) {
     clearInterval(uploadInterval);
@@ -94,10 +112,11 @@ export const stopRecordingMedia = async (sessionToken:string, userId:string) => 
 
 
 let isUploading = false;
-export async function processQueue(sessionToken: string, userId: string) {
+export async function processQueue(sessionToken: string, userId: string, stop:string="start") {
+  console.log("2", stop);
   if (isUploading) return;
   isUploading = true;
-
+  console.log("1", stop);
   try {
     if (!dbInstance) {
       dbInstance = await initDB();
@@ -106,7 +125,6 @@ export async function processQueue(sessionToken: string, userId: string) {
       console.error('chunkIdxedDB instance "db" not found on window.');
       return;
     }
-
     const queue = await dbInstance.getAll('queue');
     for (const meta of queue) {
       if (meta.uploaded) continue;
